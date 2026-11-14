@@ -1,0 +1,34 @@
+{
+  "ok": true,
+  "model": "gemini-3.5-flash-lite",
+  "elapsedMs": 3023,
+  "source": "ai",
+  "readingId": "2f8d2ea2-71d6-47a2-b525-98176f82f0d3",
+  "phase": "shuffling",
+  "cardIds": [
+    "the-chariot",
+    "pentacles-3",
+    "cups-11"
+  ],
+  "sections": [
+    {
+      "cardId": "the-chariot",
+      "position": 0,
+      "reversed": false,
+      "words": 57
+    },
+    {
+      "cardId": "pentacles-3",
+      "position": 1,
+      "reversed": true,
+      "words": 55
+    },
+    {
+      "cardId": "cups-11",
+      "position": 2,
+      "reversed": true,
+      "words": 52
+    }
+  ],
+  "summaryWords": 49
+}

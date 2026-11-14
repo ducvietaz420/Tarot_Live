@@ -1,0 +1,13 @@
+# Tài sản hình ảnh
+
+- `public/assets/rws/*.jpg`: bộ bài mặc định 78 ảnh Rider–Waite–Smith “Pam-A” từ [nhóm ảnh Wikimedia Commons](https://commons.wikimedia.org/wiki/Category:Rider-Waite-Smith_tarot_deck_(TaionWC)), tác giả Pamela Colman Smith. Các trang nguồn ghi Public domain; dùng bản hiển thị chính thức rộng 500 px của toàn bộ lá, giữ viền/tên in và không sửa màu/cắt ảnh tại project. Nguồn/giấy phép/kích thước/hash của từng lá có trong `public/assets/rws/manifest.json`; xem thêm `docs/RWS-SOURCES.md`.
+- `public/assets/cards/*.svg`: 78 minh họa vector biểu tượng tự biên soạn đời đầu, giữ làm tài sản dự phòng/tham khảo và không còn là hình mặc định. Tái tạo riêng bộ SVG bằng `node scripts/generate-deck-assets.mjs`; script này không ghi đè JPEG RWS.
+- `public/assets/card-back.svg`: mặt sau hình học tự biên soạn, cùng bảng màu tím, vàng và cyan.
+- Nội dung tiếng Việt tại `shared/cards.ts`: lời gợi mở tự biên soạn, không dùng trích đoạn từ sách hay khẳng định dự đoán chắc chắn.
+- Người vận hành có thể thay từng `cardAssets[cardId]` bằng artwork mình có quyền sử dụng trong admin. Cả 78 hình mặc định đã nằm local, không cần tải tài sản từ mạng khi đang phát.
+- `public/assets/tarot-reader.png`: nhân vật nữ tarot hư cấu, trang phục nhung tím, được tạo riêng bằng công cụ image_gen tích hợp (không dùng CLI) với nền trong suốt. Prompt chính xác lưu ở `docs/CHARACTER-PROMPT.md`; không lấy ảnh người thật hoặc danh tính của ảnh tham chiếu.
+- Nền sân khấu, vòm neon, lưới phối cảnh, sao và vòng huyền học được vẽ bằng CSS/SVG của project. Tài sản mặc định đều local, không cần ảnh/font/CDN khi phát. Nhân vật và nền có thể được thay bằng ảnh/video MP4/WebM riêng; tài sản từ URL ngoài do người vận hành chọn vẫn phụ thuộc kết nối mạng.
+- `public/assets/avatars/`: 10 avatar người hư cấu và một avatar cộng đồng bằng SVG tự biên soạn; không lấy tên, ngày sinh hoặc avatar từ ảnh tham chiếu làm dữ liệu demo.
+- `public/assets/fonts/Lora-Variable.ttf`: font Lora đầy đủ, gồm bộ ký tự tiếng Việt, được phục vụ local cho các tiêu đề serif để tránh lỗi ghép dấu/fallback phụ thuộc font Windows. Tải nguyên bản từ [Google Fonts](https://github.com/google/fonts/tree/main/ofl/lora), tác giả The Lora Project Authors (Cyreal), giấy phép SIL Open Font License 1.1 được kèm tại `public/assets/fonts/OFL-Lora.txt`. Font không bị sửa đổi. Phần nội dung sans dùng Segoe UI/Arial có sẵn trên máy.
+
+Các SVG biểu tượng và tài sản CSS là thiết kế gốc của project. Ảnh JPEG RWS được ghi nguồn riêng theo từng trang Wikimedia Commons; không coi chúng là ảnh do project tự vẽ. Font Lora giữ giấy phép OFL kèm theo.

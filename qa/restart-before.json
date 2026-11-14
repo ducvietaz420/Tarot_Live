@@ -1,0 +1,938 @@
+{
+  "mode": "demo",
+  "config": {
+    "shopName": "TIỆM TAROT",
+    "instruction": "Bình luận {command} chủ đề | câu hỏi",
+    "footer": "Một câu hỏi, ba lá bài, một khoảng lặng cho chính bạn.",
+    "accent": "#ef9ad5",
+    "cyan": "#71d9df",
+    "fontScale": 1,
+    "safeTop": 50,
+    "safeBottom": 75,
+    "safeX": 44,
+    "reducedMotion": false,
+    "fps": 30,
+    "characterAsset": "/assets/tarot-reader.png",
+    "backgroundAsset": "",
+    "cardBackAsset": "/assets/card-back.svg",
+    "cardAssets": {},
+    "joinMode": "gift_question",
+    "minCoins": 1,
+    "giftValues": {},
+    "command": "!tarot",
+    "matchWindowSec": 300,
+    "cooldownSec": 15,
+    "maxQuestionLength": 220,
+    "priority": false,
+    "maxWaitSec": 600,
+    "moderation": false,
+    "accepting": true,
+    "autoRun": false,
+    "reversed": true,
+    "heartGoal": 3000,
+    "communityCooldownSec": 90,
+    "maxCommunityPending": 1,
+    "durations": {
+      "locking": 2,
+      "shuffling": 3,
+      "dealing": 2,
+      "card": 24,
+      "summary": 20,
+      "complete": 6
+    },
+    "aiEnabled": false,
+    "aiModel": "",
+    "aiTimeoutSec": 18,
+    "displayWords": 65,
+    "summaryWords": 50,
+    "ttsProvider": "browser",
+    "voice": "",
+    "speechRate": 0.95,
+    "speechVolume": 0.85,
+    "music": false,
+    "musicVolume": 0.12,
+    "sfx": true
+  },
+  "session": {
+    "queue": [
+      {
+        "id": "f6723353-20f3-418e-ab06-4db9020a2326",
+        "user": {
+          "id": "demo-user-0",
+          "name": "Linh Chi",
+          "handle": "khach_0",
+          "avatar": "/assets/avatars/avatar-0.svg"
+        },
+        "topic": "Tình duyên",
+        "question": "Tôi nên chú ý điều gì trong mối quan hệ hiện tại?",
+        "status": "ready",
+        "createdAt": 1794628595959,
+        "updatedAt": 1794628595959,
+        "coins": 1,
+        "creditIds": [
+          "83d529ac-2275-4d5e-812c-8f4fa1a40513"
+        ],
+        "order": 1794628595959,
+        "approved": true
+      },
+      {
+        "id": "a4632b5c-2a47-4b1a-afe2-d60f63db31c3",
+        "user": {
+          "id": "demo-user-1",
+          "name": "Minh Anh",
+          "handle": "khach_1",
+          "avatar": "/assets/avatars/avatar-1.svg"
+        },
+        "topic": "Tiền bạc",
+        "question": "Tôi nên xây dựng thói quen chi tiêu như thế nào?",
+        "status": "ready",
+        "createdAt": 1794628595962,
+        "updatedAt": 1794628595964,
+        "coins": 1,
+        "creditIds": [
+          "da24845f-785c-478a-9625-3f1de82abd73"
+        ],
+        "order": 1794628595962,
+        "approved": true
+      },
+      {
+        "id": "66615297-0b3d-4023-9c62-9eb65d9d20fa",
+        "user": {
+          "id": "demo-user-2",
+          "name": "Minh Anh",
+          "handle": "khach_2",
+          "avatar": "/assets/avatars/avatar-2.svg"
+        },
+        "topic": "Công việc",
+        "question": "Giai đoạn tới tôi nên tập trung phát triển điều gì?",
+        "status": "ready",
+        "createdAt": 1794628595966,
+        "updatedAt": 1794628595966,
+        "coins": 1,
+        "creditIds": [
+          "2594578d-f420-47e6-bfa4-25687894044a"
+        ],
+        "order": 1794628595966,
+        "approved": true
+      },
+      {
+        "id": "2d725505-3e09-4af9-870e-16d2bef51f7e",
+        "user": {
+          "id": "demo-user-3",
+          "name": "Ngọc An",
+          "handle": "khach_3",
+          "avatar": "/assets/avatars/avatar-3.svg"
+        },
+        "topic": "Học hành",
+        "question": "Tôi có thể cải thiện cách học như thế nào?",
+        "status": "ready",
+        "createdAt": 1794628595970,
+        "updatedAt": 1794628595972,
+        "coins": 1,
+        "creditIds": [
+          "0fac16c1-28e8-4235-b419-279d9cfa2751"
+        ],
+        "order": 1794628595970,
+        "approved": true
+      },
+      {
+        "id": "2e2f3324-f7fd-4bc0-8a07-4f6d8718659d",
+        "user": {
+          "id": "demo-user-5",
+          "name": "Hoàng Nam",
+          "handle": "khach_5",
+          "avatar": "/assets/avatars/avatar-5.svg"
+        },
+        "topic": "Tình duyên",
+        "question": "Tôi nên chú ý điều gì trong mối quan hệ hiện tại?",
+        "status": "ready",
+        "createdAt": 1794628595978,
+        "updatedAt": 1794628595980,
+        "coins": 1,
+        "creditIds": [
+          "6ed93e3d-9b4e-435f-bb57-822466dde298"
+        ],
+        "order": 1794628595978,
+        "approved": true
+      },
+      {
+        "id": "326ddace-a1c5-4cdd-9da4-09180c74c8dd",
+        "user": {
+          "id": "demo-user-6",
+          "name": "Mộc Miên",
+          "handle": "khach_6",
+          "avatar": "/assets/avatars/avatar-6.svg"
+        },
+        "topic": "Tiền bạc",
+        "question": "Tôi nên xây dựng thói quen chi tiêu như thế nào?",
+        "status": "ready",
+        "createdAt": 1794628595983,
+        "updatedAt": 1794628595983,
+        "coins": 1,
+        "creditIds": [
+          "48c63835-d9a4-438f-86d3-25e3f5b0f8d0"
+        ],
+        "order": 1794628595983,
+        "approved": true
+      },
+      {
+        "id": "d77ec032-e265-4c90-ba48-ad7c1f142b3c",
+        "user": {
+          "id": "demo-user-7",
+          "name": "Khánh Vy",
+          "handle": "khach_7",
+          "avatar": "/assets/avatars/avatar-7.svg"
+        },
+        "topic": "Công việc",
+        "question": "Giai đoạn tới tôi nên tập trung phát triển điều gì?",
+        "status": "ready",
+        "createdAt": 1794628595987,
+        "updatedAt": 1794628595991,
+        "coins": 1,
+        "creditIds": [
+          "e5d3d860-fbdc-454a-9090-ab0ae246d13b"
+        ],
+        "order": 1794628595987,
+        "approved": true
+      },
+      {
+        "id": "611deff8-7930-4803-bb4b-cc1a342780a0",
+        "user": {
+          "id": "demo-user-8",
+          "name": "Bảo Ngọc",
+          "handle": "khach_8",
+          "avatar": "/assets/avatars/avatar-8.svg"
+        },
+        "topic": "Học hành",
+        "question": "Tôi có thể cải thiện cách học như thế nào?",
+        "status": "ready",
+        "createdAt": 1794628595993,
+        "updatedAt": 1794628595993,
+        "coins": 1,
+        "creditIds": [
+          "18fa2ea9-ceb9-4f96-8130-742020871cc3"
+        ],
+        "order": 1794628595993,
+        "approved": true
+      },
+      {
+        "id": "9affb315-face-458a-a35d-23bfebc164a3",
+        "user": {
+          "id": "demo-user-9",
+          "name": "Hạ Lam",
+          "handle": "khach_9",
+          "avatar": "/assets/avatars/avatar-9.svg"
+        },
+        "topic": "Gia đình",
+        "question": "Làm sao để lắng nghe người thân tốt hơn?",
+        "status": "ready",
+        "createdAt": 1794628595995,
+        "updatedAt": 1794628595997,
+        "coins": 1,
+        "creditIds": [
+          "fdb6fb50-7d9c-4881-9d95-eac1d7557573"
+        ],
+        "order": 1794628595995,
+        "approved": true
+      },
+      {
+        "id": "e98fe485-e471-4a62-b819-3cc5496cf81c",
+        "user": {
+          "id": "demo-user-0",
+          "name": "Linh Chi",
+          "handle": "khach_0",
+          "avatar": "/assets/avatars/avatar-0.svg"
+        },
+        "topic": "Tình duyên",
+        "question": "Tôi nên chú ý điều gì trong mối quan hệ hiện tại?",
+        "status": "completed",
+        "createdAt": 1794628031702,
+        "updatedAt": 1794628168051,
+        "coins": 1,
+        "creditIds": [
+          "8889668c-508a-415a-b0a2-2aa68fe42137"
+        ],
+        "order": 1794628031702,
+        "approved": true,
+        "readingId": "9e96117c-9621-4e09-813b-d301c350e9d9"
+      },
+      {
+        "id": "fe5bdf1f-6d50-48a9-847b-7b53cec45746",
+        "user": {
+          "id": "demo-user-1",
+          "name": "Minh Anh",
+          "handle": "khach_1",
+          "avatar": "/assets/avatars/avatar-1.svg"
+        },
+        "topic": "Tình duyên",
+        "question": "Trong giai đoạn hiện tại tôi nên chú ý điều gì để cân bằng cảm xúc, lắng nghe bản thân và giao tiếp chân thành hơn với những người xung quanh khi có nhiều thay đổi trong cuộc sống và kế hoạch tương lai của tôi?",
+        "status": "skipped",
+        "createdAt": 1794628031715,
+        "updatedAt": 1794628449273,
+        "coins": 1,
+        "creditIds": [
+          "70e85543-c669-4ab7-9856-dda969cb9f34"
+        ],
+        "order": 1794628031715,
+        "approved": true,
+        "readingId": "39097f7e-fefb-447d-8488-de14d0405701"
+      },
+      {
+        "id": "61510b84-47f5-449b-9068-0dc3493a75e1",
+        "user": {
+          "id": "demo-user-2",
+          "name": "Minh Anh",
+          "handle": "khach_2",
+          "avatar": "/assets/avatars/avatar-2.svg"
+        },
+        "topic": "Công việc",
+        "question": "Tôi nên dành thời gian học kỹ năng nào trong giai đoạn tới?",
+        "status": "skipped",
+        "createdAt": 1794628031717,
+        "updatedAt": 1794628419791,
+        "coins": 1,
+        "creditIds": [
+          "ec8dcbcc-80bf-40b0-9b16-fcc3a4c5f2ad"
+        ],
+        "order": 1794628031717,
+        "approved": true
+      },
+      {
+        "id": "0cee6eda-d2c2-45cb-adcf-b0f25d518c9c",
+        "user": {
+          "id": "demo-user-3",
+          "name": "Ngọc An",
+          "handle": "khach_3",
+          "avatar": "/assets/avatars/avatar-3.svg"
+        },
+        "topic": "Học hành",
+        "question": "Tôi có thể cải thiện cách học như thế nào?",
+        "status": "completed",
+        "createdAt": 1794628031719,
+        "updatedAt": 1794628559958,
+        "coins": 1,
+        "creditIds": [
+          "bbbabff6-0568-45ad-b948-ef5f4b9ad8d8"
+        ],
+        "order": 1794628031719,
+        "approved": true,
+        "readingId": "0190ce9e-64bb-4c39-b0c5-5f3acb47214e"
+      },
+      {
+        "id": "981ab753-e8c3-4713-8364-7b732c9191e9",
+        "user": {
+          "id": "demo-user-4",
+          "name": "Thảo Nhi",
+          "handle": "khach_4",
+          "avatar": "/assets/avatars/avatar-4.svg"
+        },
+        "topic": "Gia đình",
+        "question": "Làm sao để lắng nghe người thân tốt hơn?",
+        "status": "reading",
+        "createdAt": 1794628031722,
+        "updatedAt": 1794628031722,
+        "coins": 1,
+        "creditIds": [
+          "0176182a-e289-4914-bc8d-02a5eff913a0"
+        ],
+        "order": 1794628031722,
+        "approved": true,
+        "readingId": "a55660ef-787a-4b06-b44a-202ac8392828"
+      }
+    ],
+    "active": {
+      "id": "a55660ef-787a-4b06-b44a-202ac8392828",
+      "itemId": "981ab753-e8c3-4713-8364-7b732c9191e9",
+      "user": {
+        "id": "demo-user-4",
+        "name": "Thảo Nhi",
+        "handle": "khach_4",
+        "avatar": "/assets/avatars/avatar-4.svg"
+      },
+      "topic": "Gia đình",
+      "question": "Làm sao để lắng nghe người thân tốt hơn?",
+      "cards": [
+        {
+          "cardId": "swords-7",
+          "position": 0,
+          "reversed": true
+        },
+        {
+          "cardId": "wands-11",
+          "position": 1,
+          "reversed": false
+        },
+        {
+          "cardId": "cups-12",
+          "position": 2,
+          "reversed": false
+        }
+      ],
+      "content": {
+        "opening": "Cùng dành một khoảng lặng cho chủ đề gia đình. Ba lá bài là những góc nhìn để bạn tự soi chiếu, không phải kết luận cố định.",
+        "cards": [
+          {
+            "cardId": "swords-7",
+            "position": 0,
+            "reversed": true,
+            "text": "Nhìn lại điều đã qua. Bảy Kiếm ngược: Một điều bị giấu hoặc chính sự né tránh của bạn có thể cần được nhìn rõ. Chọn sự trung thực có trách nhiệm và sửa cách làm thay vì chỉ lo bị phát hiện sai sót. Tách sự việc cụ thể khỏi những lời quy kết về tính cách.",
+            "speech": "Nhìn lại điều đã qua. Bảy Kiếm ngược: Một điều bị giấu hoặc chính sự né tránh của bạn có thể cần được nhìn rõ. Chọn sự trung thực có trách nhiệm và sửa cách làm thay vì chỉ lo bị phát hiện sai sót. Tách sự việc cụ thể khỏi những lời quy kết về tính cách."
+          },
+          {
+            "cardId": "wands-11",
+            "position": 1,
+            "reversed": false,
+            "text": "Nhận diện điều đang diễn ra. Tiểu Đồng Gậy: Sự tò mò có thể đưa bạn đến một trải nghiệm mới đáng học. Bắt đầu với tinh thần người mới, đặt câu hỏi và cho mình một khoảng thử trước khi cam kết lâu dài. Cùng thống nhất cách tham gia thay vì một người quyết định hết.",
+            "speech": "Nhận diện điều đang diễn ra. Tiểu Đồng Gậy: Sự tò mò có thể đưa bạn đến một trải nghiệm mới đáng học. Bắt đầu với tinh thần người mới, đặt câu hỏi và cho mình một khoảng thử trước khi cam kết lâu dài. Cùng thống nhất cách tham gia thay vì một người quyết định hết."
+          },
+          {
+            "cardId": "cups-12",
+            "position": 2,
+            "reversed": false,
+            "text": "Gợi ý cho bước tiếp theo. Kỵ Sĩ Cốc: Một lời mời hoặc lý tưởng có thể khơi lại cảm hứng của bạn. Đón nhận điều đẹp với sự cởi mở, đồng thời quan sát hành động thực tế để cảm xúc có nền tảng bền hơn. Dành một cuộc trò chuyện biết lắng nghe mà chưa vội sửa mọi vấn đề.",
+            "speech": "Gợi ý cho bước tiếp theo. Kỵ Sĩ Cốc: Một lời mời hoặc lý tưởng có thể khơi lại cảm hứng của bạn. Đón nhận điều đẹp với sự cởi mở, đồng thời quan sát hành động thực tế để cảm xúc có nền tảng bền hơn. Dành một cuộc trò chuyện biết lắng nghe mà chưa vội sửa mọi vấn đề."
+          }
+        ],
+        "summary": "Qua ba lá bài về gia đình, hãy nhận ra điều bạn có thể chủ động thay đổi và điều cần thêm thời gian. Chọn một hành động nhỏ phù hợp với hoàn cảnh của bạn; lắng nghe bản thân, đối thoại với người liên quan và dựa vào thông…",
+        "source": "fallback"
+      },
+      "phase": "dealing",
+      "paused": true,
+      "phaseStartedAt": 1794628596054,
+      "phaseDuration": 2000,
+      "createdAt": 1794628596022,
+      "config": {
+        "shopName": "TIỆM TAROT",
+        "instruction": "Bình luận {command} chủ đề | câu hỏi",
+        "footer": "Một câu hỏi, ba lá bài, một khoảng lặng cho chính bạn.",
+        "accent": "#ef9ad5",
+        "cyan": "#71d9df",
+        "fontScale": 1,
+        "safeTop": 50,
+        "safeBottom": 75,
+        "safeX": 44,
+        "reducedMotion": false,
+        "fps": 30,
+        "characterAsset": "/assets/tarot-reader.png",
+        "backgroundAsset": "",
+        "cardBackAsset": "/assets/card-back.svg",
+        "cardAssets": {},
+        "joinMode": "gift_question",
+        "minCoins": 1,
+        "giftValues": {},
+        "command": "!tarot",
+        "matchWindowSec": 300,
+        "cooldownSec": 15,
+        "maxQuestionLength": 220,
+        "priority": false,
+        "maxWaitSec": 600,
+        "moderation": false,
+        "accepting": true,
+        "autoRun": false,
+        "reversed": true,
+        "heartGoal": 3000,
+        "communityCooldownSec": 90,
+        "maxCommunityPending": 1,
+        "durations": {
+          "locking": 2,
+          "shuffling": 3,
+          "dealing": 2,
+          "card": 24,
+          "summary": 20,
+          "complete": 6
+        },
+        "aiEnabled": false,
+        "aiModel": "",
+        "aiTimeoutSec": 18,
+        "displayWords": 65,
+        "summaryWords": 50,
+        "ttsProvider": "browser",
+        "voice": "",
+        "speechRate": 0.95,
+        "speechVolume": 0.85,
+        "music": false,
+        "musicVolume": 0.12,
+        "sfx": true
+      },
+      "generation": 2,
+      "remainingMs": 1992
+    },
+    "credits": [
+      {
+        "id": "8889668c-508a-415a-b0a2-2aa68fe42137",
+        "userId": "demo-user-0",
+        "coins": 1,
+        "count": 1,
+        "giftId": "5655",
+        "giftName": "Hoa hồng",
+        "at": 1794628031714,
+        "usedBy": "e98fe485-e471-4a62-b819-3cc5496cf81c"
+      },
+      {
+        "id": "70e85543-c669-4ab7-9856-dda969cb9f34",
+        "userId": "demo-user-1",
+        "coins": 1,
+        "count": 1,
+        "giftId": "5655",
+        "giftName": "Hoa hồng",
+        "at": 1794628031715,
+        "usedBy": "fe5bdf1f-6d50-48a9-847b-7b53cec45746"
+      },
+      {
+        "id": "ec8dcbcc-80bf-40b0-9b16-fcc3a4c5f2ad",
+        "userId": "demo-user-2",
+        "coins": 1,
+        "count": 1,
+        "giftId": "5655",
+        "giftName": "Hoa hồng",
+        "at": 1794628031718,
+        "refunded": true
+      },
+      {
+        "id": "bbbabff6-0568-45ad-b948-ef5f4b9ad8d8",
+        "userId": "demo-user-3",
+        "coins": 1,
+        "count": 1,
+        "giftId": "5655",
+        "giftName": "Hoa hồng",
+        "at": 1794628031719,
+        "usedBy": "0cee6eda-d2c2-45cb-adcf-b0f25d518c9c"
+      },
+      {
+        "id": "0176182a-e289-4914-bc8d-02a5eff913a0",
+        "userId": "demo-user-4",
+        "coins": 1,
+        "count": 1,
+        "giftId": "5655",
+        "giftName": "Hoa hồng",
+        "at": 1794628031724,
+        "usedBy": "981ab753-e8c3-4713-8364-7b732c9191e9"
+      },
+      {
+        "id": "83d529ac-2275-4d5e-812c-8f4fa1a40513",
+        "userId": "demo-user-0",
+        "coins": 1,
+        "count": 1,
+        "giftId": "5655",
+        "giftName": "Hoa hồng",
+        "at": 1794628595960,
+        "usedBy": "f6723353-20f3-418e-ab06-4db9020a2326"
+      },
+      {
+        "id": "da24845f-785c-478a-9625-3f1de82abd73",
+        "userId": "demo-user-1",
+        "coins": 1,
+        "count": 1,
+        "giftId": "5655",
+        "giftName": "Hoa hồng",
+        "at": 1794628595962,
+        "usedBy": "a4632b5c-2a47-4b1a-afe2-d60f63db31c3"
+      },
+      {
+        "id": "2594578d-f420-47e6-bfa4-25687894044a",
+        "userId": "demo-user-2",
+        "coins": 1,
+        "count": 1,
+        "giftId": "5655",
+        "giftName": "Hoa hồng",
+        "at": 1794628595968,
+        "usedBy": "66615297-0b3d-4023-9c62-9eb65d9d20fa"
+      },
+      {
+        "id": "0fac16c1-28e8-4235-b419-279d9cfa2751",
+        "userId": "demo-user-3",
+        "coins": 1,
+        "count": 1,
+        "giftId": "5655",
+        "giftName": "Hoa hồng",
+        "at": 1794628595970,
+        "usedBy": "2d725505-3e09-4af9-870e-16d2bef51f7e"
+      },
+      {
+        "id": "f2d60016-9f91-4636-88f0-1cd940693ccf",
+        "userId": "demo-user-4",
+        "coins": 1,
+        "count": 1,
+        "giftId": "5655",
+        "giftName": "Hoa hồng",
+        "at": 1794628595976
+      },
+      {
+        "id": "6ed93e3d-9b4e-435f-bb57-822466dde298",
+        "userId": "demo-user-5",
+        "coins": 1,
+        "count": 1,
+        "giftId": "5655",
+        "giftName": "Hoa hồng",
+        "at": 1794628595978,
+        "usedBy": "2e2f3324-f7fd-4bc0-8a07-4f6d8718659d"
+      },
+      {
+        "id": "48c63835-d9a4-438f-86d3-25e3f5b0f8d0",
+        "userId": "demo-user-6",
+        "coins": 1,
+        "count": 1,
+        "giftId": "5655",
+        "giftName": "Hoa hồng",
+        "at": 1794628595985,
+        "usedBy": "326ddace-a1c5-4cdd-9da4-09180c74c8dd"
+      },
+      {
+        "id": "e5d3d860-fbdc-454a-9090-ab0ae246d13b",
+        "userId": "demo-user-7",
+        "coins": 1,
+        "count": 1,
+        "giftId": "5655",
+        "giftName": "Hoa hồng",
+        "at": 1794628595987,
+        "usedBy": "d77ec032-e265-4c90-ba48-ad7c1f142b3c"
+      },
+      {
+        "id": "18fa2ea9-ceb9-4f96-8130-742020871cc3",
+        "userId": "demo-user-8",
+        "coins": 1,
+        "count": 1,
+        "giftId": "5655",
+        "giftName": "Hoa hồng",
+        "at": 1794628595994,
+        "usedBy": "611deff8-7930-4803-bb4b-cc1a342780a0"
+      },
+      {
+        "id": "fdb6fb50-7d9c-4881-9d95-eac1d7557573",
+        "userId": "demo-user-9",
+        "coins": 1,
+        "count": 1,
+        "giftId": "5655",
+        "giftName": "Hoa hồng",
+        "at": 1794628595995,
+        "usedBy": "9affb315-face-458a-a35d-23bfebc164a3"
+      }
+    ],
+    "hearts": {
+      "total": 0,
+      "milestones": 0,
+      "consumed": 0
+    },
+    "logs": [
+      {
+        "id": "70868da6-529e-4847-8e5e-2512c7f7d323",
+        "at": 1794628596022,
+        "source": "demo",
+        "event": "reading",
+        "status": "started",
+        "detail": "Đã khóa câu hỏi và 3 lá cho readingId a55660ef-787a-4b06-b44a-202ac8392828."
+      },
+      {
+        "id": "94b2bb7a-34bd-49a5-b88a-335f750c77d4",
+        "at": 1794628595997,
+        "source": "demo",
+        "event": "chat",
+        "status": "ready",
+        "detail": "Đã ghi câu hỏi của Hạ Lam (demo-user-9)."
+      },
+      {
+        "id": "0a35e6ca-8ae1-4c74-a585-3fd2840cc053",
+        "at": 1794628595995,
+        "source": "demo",
+        "event": "gift",
+        "status": "credited",
+        "detail": "Đã lưu 1 × 1 = 1 xu cho ID demo-user-9; chưa dùng lại cho lượt khác."
+      },
+      {
+        "id": "89d2d2db-f746-4e64-8b8a-b58debac9963",
+        "at": 1794628595994,
+        "source": "demo",
+        "event": "gift",
+        "status": "credited",
+        "detail": "Đã lưu 1 × 1 = 1 xu cho ID demo-user-8; chưa dùng lại cho lượt khác."
+      },
+      {
+        "id": "11273aeb-57c9-4cc0-95b2-344d145abf25",
+        "at": 1794628595993,
+        "source": "demo",
+        "event": "chat",
+        "status": "waiting_condition",
+        "detail": "Đã ghi câu hỏi của Bảo Ngọc (demo-user-8)."
+      },
+      {
+        "id": "f72c542c-20fd-410f-9a79-a18d15f84184",
+        "at": 1794628595991,
+        "source": "demo",
+        "event": "chat",
+        "status": "ready",
+        "detail": "Đã ghi câu hỏi của Khánh Vy (demo-user-7)."
+      },
+      {
+        "id": "35c568d1-8054-4bdf-8c7f-50904fa212ff",
+        "at": 1794628595987,
+        "source": "demo",
+        "event": "gift",
+        "status": "credited",
+        "detail": "Đã lưu 1 × 1 = 1 xu cho ID demo-user-7; chưa dùng lại cho lượt khác."
+      },
+      {
+        "id": "56ed294e-1072-4eb9-9182-b8ee95bb30f0",
+        "at": 1794628595985,
+        "source": "demo",
+        "event": "gift",
+        "status": "credited",
+        "detail": "Đã lưu 1 × 1 = 1 xu cho ID demo-user-6; chưa dùng lại cho lượt khác."
+      },
+      {
+        "id": "3acbace2-a4d4-453a-9d2e-9912e97b613d",
+        "at": 1794628595983,
+        "source": "demo",
+        "event": "chat",
+        "status": "waiting_condition",
+        "detail": "Đã ghi câu hỏi của Mộc Miên (demo-user-6)."
+      },
+      {
+        "id": "3a8473e7-394c-4bf0-b628-1e701eb811d3",
+        "at": 1794628595980,
+        "source": "demo",
+        "event": "chat",
+        "status": "ready",
+        "detail": "Đã ghi câu hỏi của Hoàng Nam (demo-user-5)."
+      },
+      {
+        "id": "b9dbd19b-9340-4ec6-a458-72c98e36be79",
+        "at": 1794628595978,
+        "source": "demo",
+        "event": "gift",
+        "status": "credited",
+        "detail": "Đã lưu 1 × 1 = 1 xu cho ID demo-user-5; chưa dùng lại cho lượt khác."
+      },
+      {
+        "id": "4f4bef17-a613-49c7-9ec4-41ba1054caab",
+        "at": 1794628595976,
+        "source": "demo",
+        "event": "gift",
+        "status": "credited",
+        "detail": "Đã lưu 1 × 1 = 1 xu cho ID demo-user-4; chưa dùng lại cho lượt khác."
+      },
+      {
+        "id": "9cd9fe1e-2f5a-45bc-ab82-9f0ab80304c9",
+        "at": 1794628595974,
+        "source": "demo",
+        "event": "chat",
+        "status": "ignored",
+        "detail": "Câu hỏi không thay đổi."
+      },
+      {
+        "id": "da9f859b-ba69-4f47-8b54-906af99622ba",
+        "at": 1794628595972,
+        "source": "demo",
+        "event": "chat",
+        "status": "ready",
+        "detail": "Đã ghi câu hỏi của Ngọc An (demo-user-3)."
+      },
+      {
+        "id": "2ec8cdc9-c9a5-438e-9e72-6ae9609ce90d",
+        "at": 1794628595970,
+        "source": "demo",
+        "event": "gift",
+        "status": "credited",
+        "detail": "Đã lưu 1 × 1 = 1 xu cho ID demo-user-3; chưa dùng lại cho lượt khác."
+      },
+      {
+        "id": "b07e70aa-cbcb-4e14-b977-91fe3d076f13",
+        "at": 1794628595968,
+        "source": "demo",
+        "event": "gift",
+        "status": "credited",
+        "detail": "Đã lưu 1 × 1 = 1 xu cho ID demo-user-2; chưa dùng lại cho lượt khác."
+      },
+      {
+        "id": "df36d38b-d8f9-42e4-92e9-bf5fee64cb11",
+        "at": 1794628595966,
+        "source": "demo",
+        "event": "chat",
+        "status": "waiting_condition",
+        "detail": "Đã ghi câu hỏi của Minh Anh (demo-user-2)."
+      },
+      {
+        "id": "deaba542-c516-467d-8fe1-2472bb125b35",
+        "at": 1794628595964,
+        "source": "demo",
+        "event": "chat",
+        "status": "ready",
+        "detail": "Đã ghi câu hỏi của Minh Anh (demo-user-1)."
+      },
+      {
+        "id": "4bb29cf6-766c-4036-adbb-2b96d01ba763",
+        "at": 1794628595962,
+        "source": "demo",
+        "event": "gift",
+        "status": "credited",
+        "detail": "Đã lưu 1 × 1 = 1 xu cho ID demo-user-1; chưa dùng lại cho lượt khác."
+      },
+      {
+        "id": "c3b94207-dc25-4524-b963-8aa166a7d888",
+        "at": 1794628595960,
+        "source": "demo",
+        "event": "gift",
+        "status": "credited",
+        "detail": "Đã lưu 1 × 1 = 1 xu cho ID demo-user-0; chưa dùng lại cho lượt khác."
+      },
+      {
+        "id": "3cfc5b3b-d2d3-47dc-a2d9-89b68aa2b92f",
+        "at": 1794628595959,
+        "source": "demo",
+        "event": "chat",
+        "status": "waiting_condition",
+        "detail": "Đã ghi câu hỏi của Linh Chi (demo-user-0)."
+      },
+      {
+        "id": "b820c188-afc3-490a-b9a4-06042b6434a7",
+        "at": 1794628559958,
+        "source": "demo",
+        "event": "reading",
+        "status": "completed",
+        "detail": "Đã hoàn tất 0190ce9e-64bb-4c39-b0c5-5f3acb47214e."
+      },
+      {
+        "id": "34b58e5c-bb9d-4ca6-858a-4e7ee3ee1f1a",
+        "at": 1794628449280,
+        "source": "demo",
+        "event": "reading",
+        "status": "started",
+        "detail": "Đã khóa câu hỏi và 3 lá cho readingId 0190ce9e-64bb-4c39-b0c5-5f3acb47214e."
+      },
+      {
+        "id": "c9e6e3d6-0e87-405d-b8fe-8cac1bc8bb2c",
+        "at": 1794628449274,
+        "source": "demo",
+        "event": "reading",
+        "status": "skipped",
+        "detail": "Đã bỏ qua lượt; credit vẫn thuộc lượt cũ. Hoàn credit phải thao tác riêng."
+      },
+      {
+        "id": "5bb0f3eb-3d26-4e14-ad30-55b50678c7f7",
+        "at": 1794628424754,
+        "source": "demo",
+        "event": "credit",
+        "status": "refunded",
+        "detail": "Credit ec8dcbcc-80bf-40b0-9b16-fcc3a4c5f2ad được hoàn về số dư, chỉ dùng khi có yêu cầu mới."
+      },
+      {
+        "id": "48d7700c-d4bc-4a27-ac30-b806d35669fc",
+        "at": 1794628263360,
+        "source": "demo",
+        "event": "reading",
+        "status": "started",
+        "detail": "Đã khóa câu hỏi và 3 lá cho readingId 39097f7e-fefb-447d-8488-de14d0405701."
+      },
+      {
+        "id": "8986fcd1-b790-4e2e-aa39-ec4aff95733f",
+        "at": 1794628168051,
+        "source": "demo",
+        "event": "reading",
+        "status": "completed",
+        "detail": "Đã hoàn tất 9e96117c-9621-4e09-813b-d301c350e9d9."
+      },
+      {
+        "id": "c27d81a8-8a79-4243-b590-91b8b48f2248",
+        "at": 1794628031726,
+        "source": "demo",
+        "event": "reading",
+        "status": "started",
+        "detail": "Đã khóa câu hỏi và 3 lá cho readingId 9e96117c-9621-4e09-813b-d301c350e9d9."
+      },
+      {
+        "id": "6a860f6d-f0fd-4de7-af8d-554c6c68289f",
+        "at": 1794628031724,
+        "source": "demo",
+        "event": "gift",
+        "status": "credited",
+        "detail": "Đã lưu 1 × 1 = 1 xu cho ID demo-user-4; chưa dùng lại cho lượt khác."
+      },
+      {
+        "id": "d9cfd2cf-e3e1-4df4-97dd-bff26cc047d8",
+        "at": 1794628031722,
+        "source": "demo",
+        "event": "chat",
+        "status": "waiting_condition",
+        "detail": "Đã ghi câu hỏi của Thảo Nhi (demo-user-4)."
+      },
+      {
+        "id": "a69a3c4c-06a3-4365-869b-b4c0c38f1e47",
+        "at": 1794628031721,
+        "source": "demo",
+        "event": "chat",
+        "status": "ready",
+        "detail": "Đã ghi câu hỏi của Ngọc An (demo-user-3)."
+      },
+      {
+        "id": "481a1400-4c45-42b6-b62e-e98c9d0ac267",
+        "at": 1794628031720,
+        "source": "demo",
+        "event": "gift",
+        "status": "credited",
+        "detail": "Đã lưu 1 × 1 = 1 xu cho ID demo-user-3; chưa dùng lại cho lượt khác."
+      },
+      {
+        "id": "bc520bb2-33fd-4e90-9ed4-204e424e3a49",
+        "at": 1794628031718,
+        "source": "demo",
+        "event": "gift",
+        "status": "credited",
+        "detail": "Đã lưu 1 × 1 = 1 xu cho ID demo-user-2; chưa dùng lại cho lượt khác."
+      },
+      {
+        "id": "f5822caf-1469-4512-a2b0-59018365a920",
+        "at": 1794628031717,
+        "source": "demo",
+        "event": "chat",
+        "status": "waiting_condition",
+        "detail": "Đã ghi câu hỏi của Minh Anh (demo-user-2)."
+      },
+      {
+        "id": "ae5e6d00-b19c-415d-b479-3bf2b2bf0ef2",
+        "at": 1794628031716,
+        "source": "demo",
+        "event": "chat",
+        "status": "ready",
+        "detail": "Đã ghi câu hỏi của Minh Anh (demo-user-1)."
+      },
+      {
+        "id": "83d742ea-3cb5-44ad-bcd8-ac20a8065592",
+        "at": 1794628031715,
+        "source": "demo",
+        "event": "gift",
+        "status": "credited",
+        "detail": "Đã lưu 1 × 1 = 1 xu cho ID demo-user-1; chưa dùng lại cho lượt khác."
+      },
+      {
+        "id": "3e844609-84fe-45be-99ee-3198a44b64fc",
+        "at": 1794628031714,
+        "source": "demo",
+        "event": "gift",
+        "status": "credited",
+        "detail": "Đã lưu 1 × 1 = 1 xu cho ID demo-user-0; chưa dùng lại cho lượt khác."
+      },
+      {
+        "id": "e0447d6d-67d1-499f-b0f5-36730961bea3",
+        "at": 1794628031703,
+        "source": "demo",
+        "event": "chat",
+        "status": "waiting_condition",
+        "detail": "Đã ghi câu hỏi của Linh Chi (demo-user-0)."
+      }
+    ],
+    "seen": {},
+    "combos": {}
+  },
+  "connection": {
+    "status": "disconnected",
+    "url": "ws://localhost:21213/",
+    "attempts": 28,
+    "lastError": "TikFinity: ECONNREFUSED"
+  },
+  "audioOwner": null,
+  "serverTime": 1794628596077,
+  "capabilities": {
+    "ai": false,
+    "tts": false
+  },
+  "audioStatus": "Đã đọc xong đoạn; đang giữ nội dung trên sân khấu."
+}

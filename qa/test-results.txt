@@ -1,0 +1,75 @@
+
+> tiem-tarot-live@1.0.0 test
+> tsx --test tests/*.test.ts
+
+✔ legacy and nested chat preserve string IDs and avatar ownership (4.0652ms)
+✔ invalid data is reported and unsafe numeric IDs never assigned (0.678ms)
+✔ gift metadata keeps cumulative counts, final flag, IDs and per-unit values (1.7908ms)
+✔ missing gift metadata remains unknown instead of guessing (0.3868ms)
+✔ likes distinguish delta from cumulative; roomUser does not invent users (0.4606ms)
+✔ URL validation rejects protocols and embedded credentials (0.6312ms)
+✔ adapter uses one socket and only supported event updates LIVE timestamp (131.3825ms)
+✔ Browser đọc toàn bộ một lá trong đúng một utterance, không chia theo trang (78.7678ms)
+✔ Pause/resume giữ native utterance, generation mới nhận đúng kết thúc, skip bỏ callback cũ (1.2245ms)
+✔ Nếu native pause không giữ được lời đọc, tiếp tục từ đầu câu đang đọc thay vì giữa cụm (0.799ms)
+✔ HTTP TTS yêu cầu một file đầy đủ, pause/resume không tạo request cho từng trang (17.6966ms)
+✔ Không có giọng hoặc kết quả TTS cũ sau pause không giữ timer hay phát vào generation mới (3.7183ms)
+✔ Native resume im lặng được khôi phục đúng một lần từ đầu câu hiện tại (1.0484ms)
+✔ Native resume có tiến độ thật không bị watchdog chia lại lời đọc (0.7248ms)
+✔ Khôi phục resume vẫn không có tiến độ thì dừng heartbeat, không lặp vô hạn (1.0228ms)
+✔ Giọng trình duyệt không phát onstart được giới hạn 10 giây thay vì giữ sân khấu 180 giây (0.6405ms)
+✔ Giọng đọc còn sống không bị timer cắt giữa đoạn, kết thúc thật chuyển sau nhịp ngắn (19.1726ms)
+✔ Đọc xong sớm không để im lặng đến hết thời lượng mẫu 24 giây (20.8903ms)
+✔ Mất heartbeat hoặc mất chủ âm thanh giải phóng lượt; heartbeat không giữ sân khấu vô hạn (33.502ms)
+✔ Tiến độ là nguyên câu từ lời đọc; pause/skip/replay loại tín hiệu của generation cũ (48.7028ms)
+✔ All78 default artwork files map to distinct authentic RWS source cards with intact local bytes (196.4092ms)
+✔ RWS StrengthVIII/JusticeXI and all16 court ranks retain correct source identity (0.6224ms)
+✔ deck contains 22 major and 56 minor cards with unique stable identities (1.4305ms)
+✔ every card has local artwork and meaningful upright, reversed, topic data (120.3711ms)
+✔ 78 lá có ID/asset/nội dung khác nhau, xuôi/ngược và đủ 5 chủ đề (2.709ms)
+✔ Bộ phân tích chỉ nhận lệnh hoặc ý định rõ, không nhận chào/emoji (3.3601ms)
+✔ AI chậm hơn animation vẫn hoàn tất trước khi bắt đầu đọc lá đầu (94.7971ms)
+✔ Hết hạn chờ AI không kẹt sân khấu; kết quả muộn không thay lời đang đọc (34.6637ms)
+✔ 10 người cùng nickname ghép đúng ID, avatar, câu hỏi, quà và chỉ 1 lượt mỗi người (11.6203ms)
+✔ Trạng thái chờ câu hỏi / chờ điều kiện hiển thị rõ và quà không tự tạo lượt không câu hỏi (8.1417ms)
+✔ Combo 1→2→3→final3 chỉ chốt 3, lặp cùng event và final khác ID vẫn không cấp lại (2.6327ms)
+✔ Hai quà cùng loại/người nhưng khác ID giao dịch được giữ riêng; lặp event không cộng (2.3773ms)
+✔ Thiếu giá trị hoặc định danh phải đối soát; không đoán xu, không tự tính quyền lợi (1.2111ms)
+✔ Quà vượt cửa sổ ghép được giữ để đối soát, không âm thầm dùng hoặc xóa (1.2787ms)
+✔ Khóa câu hỏi khi đọc; quà trong lúc đọc lưu riêng và chỉ dùng cho yêu cầu mới (4.4604ms)
+✔ Cập nhật câu hỏi lúc chờ giữ một lượt, duyệt quản trị và giới hạn spam (2.3739ms)
+✔ FIFO, ưu tiên không cắt lượt đang đọc và thời gian chờ bảo vệ người cũ (3.182ms)
+✔ Ba lá khác nhau, nội dung giữ cardId/vị trí/chiều, refresh snapshot không rút lại (2.5059ms)
+✔ Pause/resume/replay không đổi lá, generation thay đổi, skip hủy signal cũ (6.07ms)
+✔ Full offline state machine kết thúc không cần TikFinity/AI/TTS (7.4432ms)
+✔ Tim tăng thêm chống lặp và mỗi mốc chỉ mở một lượt, giữ dư qua pending/cooldown (2.4376ms)
+✔ Tổng tim tích lũy dùng baseline và reset khi đổi room; roomUser không tạo người (1.4644ms)
+✔ Restart khôi phục queue, credit/dedupe, card cố định và paused thay vì tự đọc lại (2.8987ms)
+✔ Hủy lượt giữ credit đã dùng; hoàn credit là thao tác tách biệt (2.5895ms)
+✔ Chỉ một audio owner toàn app, tab preview không tự nhận quyền (1.0144ms)
+✔ Config validate, không xuất secret, quy tắc đang đọc giữ snapshot cũ (3.5727ms)
+✔ AI validator không cho thay lá/chiều/vị trí dù comment yêu cầu, fallback vẫn cùng lá (3.6404ms)
+✔ Đổi mốc tim chỉ dùng phần dư, không tái dùng tim đã mở lượt chung (1.9881ms)
+✔ Frame tổng tim đến muộn không làm giảm high-water rồi cộng lại (1.3301ms)
+✔ Phụ đề chỉ nhận đúng đoạn hiện tại từ audio owner, pause/generation không giữ đoạn cũ (7.9383ms)
+✔ Khôi phục hàng chờ tự động cũng giữ yên tới khi admin Bắt đầu (8.8241ms)
+✔ AI hơi dài được rút gọn, vẫn giữ đúng bài, lời đọc và giới hạn từ (29.4664ms)
+✔ Mọi lá/chủ đề/chiều đều có 45–70 từ, giữ gợi ý đúng chủ đề và lời đọc đúng chữ (441.0093ms)
+✔ AI timeout thật chuyển fallback; kết quả cũ sau skip không chèn vào lượt mới (2189.1864ms)
+✔ TTS chưa cấu hình hoặc response không audio báo lỗi để UI giữ chữ (5.8595ms)
+✔ HTTP/WS: Origin, phiên riêng, nhiều preview, audio lease và restart SQLite (2301.4968ms)
+✔ Không cắt giữa một câu dài dù vượt ngưỡng từ cũ (27.3286ms)
+✔ Vị trí câu giữ nguyên tiếng Việt, emoji và khoảng trắng cho boundary giọng đọc (1.688ms)
+ℹ tests 58
+ℹ suites 0
+ℹ pass 58
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4094.4932
+npm notice
+npm notice New major version of npm available! 11.16.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice

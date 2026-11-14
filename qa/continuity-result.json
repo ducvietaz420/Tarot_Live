@@ -1,0 +1,700 @@
+{
+  "finished": true,
+  "elapsedMs": 70914,
+  "readingId": "dcf69c82-d16f-4e6f-b9d1-e46c4e0019ab",
+  "cards": [
+    {
+      "cardId": "the-fool",
+      "position": 0,
+      "reversed": true
+    },
+    {
+      "cardId": "swords-9",
+      "position": 1,
+      "reversed": false
+    },
+    {
+      "cardId": "wands-10",
+      "position": 2,
+      "reversed": false
+    }
+  ],
+  "queueStatus": "completed",
+  "phases": [
+    "locking",
+    "shuffling",
+    "dealing",
+    "card1",
+    "card2",
+    "card3",
+    "summary",
+    "complete"
+  ],
+  "browserBoundaryObserved": true,
+  "audioError": false,
+  "rows": [
+    {
+      "at": 1794632404864,
+      "phase": "locking",
+      "paused": false,
+      "audioActive": false,
+      "audioStatus": "Đã đọc trọn nội dung",
+      "textLength": 222
+    },
+    {
+      "at": 1794632405881,
+      "phase": "locking",
+      "paused": false,
+      "audioActive": false,
+      "audioStatus": "Đã đọc trọn nội dung",
+      "textLength": 222
+    },
+    {
+      "at": 1794632406919,
+      "phase": "shuffling",
+      "paused": false,
+      "audioActive": false,
+      "audioStatus": "Đã đọc trọn nội dung",
+      "textLength": 222
+    },
+    {
+      "at": 1794632407946,
+      "phase": "shuffling",
+      "paused": false,
+      "audioActive": false,
+      "audioStatus": "Đã đọc trọn nội dung",
+      "textLength": 169
+    },
+    {
+      "at": 1794632408975,
+      "phase": "shuffling",
+      "paused": false,
+      "audioActive": false,
+      "audioStatus": "Đã đọc trọn nội dung",
+      "textLength": 169
+    },
+    {
+      "at": 1794632410005,
+      "phase": "dealing",
+      "paused": false,
+      "audioActive": false,
+      "audioStatus": "Đã đọc trọn nội dung",
+      "textLength": 169
+    },
+    {
+      "at": 1794632411026,
+      "phase": "dealing",
+      "paused": false,
+      "audioActive": false,
+      "audioStatus": "Đã đọc trọn nội dung",
+      "textLength": 169
+    },
+    {
+      "at": 1794632412057,
+      "phase": "card1",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang chuẩn bị hoặc phát toàn bộ lời đọc.",
+      "textLength": 206
+    },
+    {
+      "at": 1794632413088,
+      "phase": "card1",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 0,
+      "textLength": 206,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632414117,
+      "phase": "card1",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 11,
+      "textLength": 206,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632415141,
+      "phase": "card1",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 32,
+      "textLength": 206,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632416170,
+      "phase": "card1",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 54,
+      "textLength": 206,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632417195,
+      "phase": "card1",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 74,
+      "textLength": 206,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632418220,
+      "phase": "card1",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 99,
+      "textLength": 206,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632419246,
+      "phase": "card1",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 109,
+      "textLength": 206,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632420274,
+      "phase": "card1",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 118,
+      "textLength": 206,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632421300,
+      "phase": "card1",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 136,
+      "textLength": 206,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632422328,
+      "phase": "card1",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 158,
+      "textLength": 206,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632423354,
+      "phase": "card1",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 181,
+      "textLength": 206,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632424392,
+      "phase": "card1",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 201,
+      "textLength": 206,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632425415,
+      "phase": "card1",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 201,
+      "textLength": 206,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632426442,
+      "phase": "card2",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang chuẩn bị hoặc phát toàn bộ lời đọc.",
+      "textLength": 237
+    },
+    {
+      "at": 1794632427466,
+      "phase": "card2",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 4,
+      "textLength": 237,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632428495,
+      "phase": "card2",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 27,
+      "textLength": 237,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632429524,
+      "phase": "card2",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 41,
+      "textLength": 237,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632430552,
+      "phase": "card2",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 66,
+      "textLength": 237,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632431579,
+      "phase": "card2",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 80,
+      "textLength": 237,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632432607,
+      "phase": "card2",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 106,
+      "textLength": 237,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632433632,
+      "phase": "card2",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 122,
+      "textLength": 237,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632434656,
+      "phase": "card2",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 127,
+      "textLength": 237,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632435688,
+      "phase": "card2",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 144,
+      "textLength": 237,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632436716,
+      "phase": "card2",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 159,
+      "textLength": 237,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632437745,
+      "phase": "card2",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 182,
+      "textLength": 237,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632438771,
+      "phase": "card2",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 197,
+      "textLength": 237,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632439798,
+      "phase": "card2",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 222,
+      "textLength": 237,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632440828,
+      "phase": "card2",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 233,
+      "textLength": 237,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632441861,
+      "phase": "card2",
+      "paused": false,
+      "audioActive": false,
+      "audioStatus": "Đã đọc trọn nội dung",
+      "charIndex": 236,
+      "textLength": 237,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632442890,
+      "phase": "card3",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 0,
+      "textLength": 253,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632443908,
+      "phase": "card3",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 21,
+      "textLength": 253,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632444930,
+      "phase": "card3",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 43,
+      "textLength": 253,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632445957,
+      "phase": "card3",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 62,
+      "textLength": 253,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632446986,
+      "phase": "card3",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 84,
+      "textLength": 253,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632448015,
+      "phase": "card3",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 99,
+      "textLength": 253,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632449030,
+      "phase": "card3",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 115,
+      "textLength": 253,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632450055,
+      "phase": "card3",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 125,
+      "textLength": 253,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632451081,
+      "phase": "card3",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 147,
+      "textLength": 253,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632452099,
+      "phase": "card3",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 169,
+      "textLength": 253,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632453129,
+      "phase": "card3",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 182,
+      "textLength": 253,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632454160,
+      "phase": "card3",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 207,
+      "textLength": 253,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632455191,
+      "phase": "card3",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 230,
+      "textLength": 253,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632456221,
+      "phase": "card3",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 249,
+      "textLength": 253,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632457251,
+      "phase": "card3",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 249,
+      "textLength": 253,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632458294,
+      "phase": "summary",
+      "paused": false,
+      "audioActive": false,
+      "audioStatus": "Đã đọc trọn nội dung",
+      "textLength": 169
+    },
+    {
+      "at": 1794632459321,
+      "phase": "summary",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 10,
+      "textLength": 169,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632460353,
+      "phase": "summary",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 33,
+      "textLength": 169,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632461384,
+      "phase": "summary",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 49,
+      "textLength": 169,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632462398,
+      "phase": "summary",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 72,
+      "textLength": 169,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632463425,
+      "phase": "summary",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 93,
+      "textLength": 169,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632464456,
+      "phase": "summary",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 122,
+      "textLength": 169,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632465483,
+      "phase": "summary",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 138,
+      "textLength": 169,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632466501,
+      "phase": "summary",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 155,
+      "textLength": 169,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632467519,
+      "phase": "summary",
+      "paused": false,
+      "audioActive": true,
+      "audioStatus": "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+      "charIndex": 165,
+      "textLength": 169,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632468549,
+      "phase": "summary",
+      "paused": false,
+      "audioActive": false,
+      "audioStatus": "Đã đọc trọn nội dung",
+      "charIndex": 168,
+      "textLength": 169,
+      "timing": "boundary"
+    },
+    {
+      "at": 1794632469581,
+      "phase": "complete",
+      "paused": false,
+      "audioActive": false,
+      "audioStatus": "Đã đọc trọn nội dung",
+      "textLength": 169
+    },
+    {
+      "at": 1794632470610,
+      "phase": "complete",
+      "paused": false,
+      "audioActive": false,
+      "audioStatus": "Đã đọc trọn nội dung",
+      "textLength": 169
+    },
+    {
+      "at": 1794632471638,
+      "phase": "complete",
+      "paused": false,
+      "audioActive": false,
+      "audioStatus": "Đã đọc trọn nội dung",
+      "textLength": 169
+    },
+    {
+      "at": 1794632472665,
+      "phase": "complete",
+      "paused": false,
+      "audioActive": false,
+      "audioStatus": "Đã đọc trọn nội dung",
+      "textLength": 169
+    },
+    {
+      "at": 1794632473687,
+      "phase": "complete",
+      "paused": false,
+      "audioActive": false,
+      "audioStatus": "Đã đọc trọn nội dung",
+      "textLength": 169
+    },
+    {
+      "at": 1794632474716,
+      "phase": "complete",
+      "paused": false,
+      "audioActive": false,
+      "audioStatus": "Đã đọc trọn nội dung",
+      "textLength": 169
+    },
+    {
+      "at": 1794632475746,
+      "audioActive": false,
+      "audioStatus": "Đã đọc trọn nội dung"
+    }
+  ]
+}
