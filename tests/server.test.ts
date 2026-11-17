@@ -218,6 +218,7 @@ test(
     assert.equal(accepted, false);
 
     // DEMO events cannot accidentally enter the LIVE session.
+    assert.equal((await action({ type: "config", config: { autoRun: false } })).status, 200);
     assert.equal(
       (await action({ type: "demo", scenario: "seed" }, "live")).status,
       400,

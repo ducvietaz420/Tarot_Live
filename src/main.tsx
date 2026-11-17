@@ -15,6 +15,8 @@ import { sentenceRanges } from "../shared/text";
 import CreditLedger from "./CreditLedger";
 import { ReadingText } from "./ReadingText";
 import FollowUpPanel from "./FollowUpPanel";
+import DeckRitual from "./DeckRitual";
+import ViewerPrompt from "./ViewerPrompt";
 
 const number = (n: number) => new Intl.NumberFormat("vi-VN").format(n);
 const time = (n?: number) =>
@@ -228,6 +230,10 @@ function Stage({
     return () => observer.disconnect();
   }, []);
   const now = useClock();
+  const intake = !r && s.intake
+    ? s.queue.find((item) => item.id === s.intake!.itemId)
+    : undefined;
+  const intakeSeconds = Math.max(0, Math.ceil(((s.intake?.deadline || now) - now) / 1000));
   const followUp = r?.followUp;
   const followUpQuestion = followUp?.questions.find(
     (question) => question.id === followUp.currentQuestionId,
@@ -256,7 +262,7 @@ function Stage({
             ? "AI đang đọc lại ba lá và nội dung vừa giải để trả lời câu hỏi của bạn."
             : awaitingFollowUp
               ? `${r?.user.name}, hãy viết câu hỏi ở bình luận tiếp theo. Tiệm đang chờ câu hỏi của bạn; còn ${followUpClock}.`
-              : `Bạn còn ${Math.max(0, 3 - (followUp?.questions.length || 0))} câu hỏi tiếp về trải bài này. Gửi riêng !hoi, rồi viết câu hỏi ở bình luận tiếp theo. Chỉ tài khoản vừa xem bài mới được hỏi tiếp.`
+              : `Bạn còn ${Math.max(0, 3 - (followUp?.questions.length || 0))} câu hỏi tiếp về trải bài này. Viết thẳng câu hỏi trong bình luận; mỗi câu có 30 giây để hỏi. Chỉ tài khoản vừa xem bài mới được hỏi tiếp.`
         : phase === "complete"
           ? "Hãy giữ lại điều chạm đến bạn, và để những điều còn lại nhẹ nhàng đi qua."
           : r
@@ -282,6 +288,25 @@ function Stage({
       ? segment
       : undefined;
   const phaseKey = `${r?.id || "idle"}:${phase}:${followUp?.currentQuestionId || ""}`;
+  const ritualKey = `${phaseKey}:${r?.replayCount || 0}`;
+  const ritualTiming = useRef({ key: "", offset: 0, duration: 5000 });
+  if (ritualTiming.current.key !== ritualKey) {
+    // Resume shortens phaseDuration to the time left. Keep the original CSS
+    // timeline so a paused shuffle/fan continues instead of jumping to its end.
+    const duration = r && (phase === "shuffling" || phase === "dealing")
+      ? Math.max(r.config.durations[phase] * 1000, r.phaseDuration)
+      : 5000;
+    const remaining = r
+      ? r.paused
+        ? r.remainingMs ?? r.phaseDuration
+        : r.phaseDuration - (now - r.phaseStartedAt)
+      : duration;
+    ritualTiming.current = {
+      key: ritualKey,
+      duration,
+      offset: -Math.max(0, duration - remaining),
+    };
+  }
   const timedChar = Math.max(
     0,
     Math.min(
@@ -313,29 +338,23 @@ function Stage({
   const captionSentence = captionText
     ? ranges[sentenceIndex]?.text || captionText
     : "";
-  const queue = s.queue
+  const pendingQueue = s.queue
     .filter((q) =>
-      ["ready", "waiting_question", "waiting_condition"].includes(q.status),
-    )
-    .slice(0, 4);
-  const totalQueue = s.queue.filter((q) =>
-    ["ready", "waiting_question", "waiting_condition"].includes(q.status),
-  ).length;
+      ["ready", "waiting_question", "waiting_condition"].includes(q.status) &&
+      (!q.roomId || !s.roomId || q.roomId === s.roomId),
+    );
+  const queue = pendingQueue.slice(0, 4);
+  const totalQueue = pendingQueue.length;
   const goal = c.heartGoal;
   const remainder = Math.max(
     0,
     s.hearts.total - (s.hearts.consumed ?? s.hearts.milestones * goal),
   );
   const progress = Math.min(100, (remainder / goal) * 100);
-  const join =
-    c.joinMode === "free"
-      ? "Bình luận câu hỏi để tham gia"
-      : c.joinMode === "gift_question"
-        ? `Quà từ ${number(c.minCoins)} xu + câu hỏi`
-        : "Bình luận vào hàng · quà tăng ưu tiên";
+  const join = "Tặng quà hoặc bình luận tarot · Quà được ưu tiên";
   const guide = (text: string) =>
     text
-      .replaceAll("{command}", c.command)
+      .replaceAll("{command}", "tarot")
       .replaceAll("{minCoins}", number(c.minCoins))
       .replaceAll("{heartGoal}", number(c.heartGoal));
   const style = {
@@ -348,6 +367,8 @@ function Stage({
     "--breathe-frames": c.fps * 6,
     "--twinkle-frames": c.fps * 5,
     "--scene-ratio": sceneRatio,
+    "--ritual-duration": `${ritualTiming.current.duration}ms`,
+    "--ritual-offset": `${ritualTiming.current.offset}ms`,
     backgroundImage:
       c.backgroundAsset && !/\.(mp4|webm)(\?|$)/i.test(c.backgroundAsset)
         ? `linear-gradient(#110b2290,#110b2290),url("${c.backgroundAsset.replaceAll('"', "%22")}")`
@@ -355,7 +376,7 @@ function Stage({
   } as React.CSSProperties;
   return (
     <div
-      className={`stage ${c.backgroundAsset ? "custom-background" : ""} ${c.reducedMotion ? "reduced" : ""} ${guides ? "has-guides" : ""}`}
+      className={`stage ${c.backgroundAsset ? "custom-background" : ""} ${c.reducedMotion ? "reduced" : ""} ${r?.paused ? "is-paused" : ""} ${guides ? "has-guides" : ""}`}
       style={style}
       data-phase={phase}
     >
@@ -486,26 +507,29 @@ function Stage({
           </div>
         </section>
         <section className={`seeker-panel ${r?.community ? "community" : ""}`}>
-          <Avatar user={r?.user || { name: "Câu chuyện của bạn" }} size={68} />
+          <Avatar user={r?.user || intake?.user || { name: "Câu chuyện của bạn" }} size={68} />
           <div>
             <div className="seeker-caption">
               {r?.community
                 ? "THÔNG ĐIỆP CHUNG CHO CẢ PHÒNG"
                 : r
                   ? isFollowUp ? "HỎI ĐÁP SAU TRẢI BÀI" : "ĐANG XEM BÀI CHO"
-                  : "MỘT CHÚT LẮNG NGHE, MỘT CHÚT THẤU HIỂU"}
+                  : intake ? "ĐANG LẮNG NGHE CÂU HỎI CỦA" : "MỘT CHÚT LẮNG NGHE, MỘT CHÚT THẤU HIỂU"}
             </div>
             <h2>
-              {r?.user.name || "Vũ trụ đang lắng nghe"}{" "}
+              {r?.user.name || intake?.user.name || "Vũ trụ đang lắng nghe"}{" "}
               {r && <span>{r.topic}</span>}
             </h2>
-            <p>{r?.question || "Bạn đang mang trong mình câu hỏi nào?"}</p>
+            <p>{r?.question || (intake?.topicChosen ? `Chia sẻ thêm điều bạn muốn biết về ${intake.topic.toLocaleLowerCase("vi")}.` : "Bạn đang mang trong mình câu hỏi nào?")}</p>
           </div>
           <span className="seeker-star">✧</span>
         </section>
         <section
-          className={`interpretation ${activeIndex >= 0 || phase === "answer" ? "is-reading" : ""} ${isFollowUp ? "followup-interpretation" : ""}`}
+          className={`interpretation ${activeIndex >= 0 || phase === "answer" ? "is-reading" : ""} ${isFollowUp ? "followup-interpretation" : ""} ${intake || awaitingFollowUp ? "prompt-interpretation" : ""}`}
         >
+          {intake || awaitingFollowUp ? (
+            <ViewerPrompt intake={intake} reading={r || undefined} seconds={intake ? intakeSeconds : followUpSeconds} />
+          ) : <>
           <div className="interpretation-top">
             <span>
               <i />
@@ -514,7 +538,7 @@ function Stage({
                 : phase === "summary"
                   ? "KẾT NỐI BA THÔNG ĐIỆP"
                   : isFollowUp
-                    ? `HỎI ĐÁP · ${followUp?.questions.length || 0}/3 CÂU · ${followUpClock}`
+                    ? `HỎI ĐÁP · ${followUp?.questions.length || 0}/3 CÂU${awaitingFollowUp ? ` · ${followUpClock}` : ""}`
                   : r
                     ? "HÀNH TRÌNH CỦA BẠN"
                     : "DÀNH MỘT KHOẢNG LẶNG CHO BẠN"}
@@ -556,11 +580,12 @@ function Stage({
             <small>{isFollowUp
               ? awaitingFollowUp
                 ? `Đang chờ câu hỏi của ${r?.user.name} · ${followUpClock}`
-                : "!hoi · Gửi câu hỏi ở bình luận tiếp theo"
+                : "Mỗi câu hỏi được lắng nghe và giải đáp riêng"
               : "Lắng nghe trực giác của bạn"}</small>
             <i />
             <span>✦</span>
           </div>
+          </>}
         </section>
         <section
           className={`spread ${phase === "shuffling" ? "shuffling" : ""} ${phase === "dealing" ? "dealing" : ""}`}
@@ -641,6 +666,10 @@ function Stage({
               <img src={c.cardBackAsset || "/assets/card-back.svg"} alt="" />
             </div>
           </div>
+          {(phase === "shuffling" || phase === "dealing") && (
+            <DeckRitual key={ritualKey} phase={phase}
+              back={c.cardBackAsset || "/assets/card-back.svg"} />
+          )}
         </section>
         <div
           className={`caption-bar ${captionText && !r?.paused ? "speaking" : ""}`}
@@ -658,7 +687,7 @@ function Stage({
                   (phase === "followup"
                     ? awaitingFollowUp
                       ? `Đang chờ ${r?.user.name} bình luận câu hỏi · ${followUpClock} còn lại`
-                      : `${r?.user.name}: gửi !hoi rồi bình luận câu hỏi · ${followUpClock} còn lại`
+                      : `${r?.user.name}, tiệm đang lắng nghe câu hỏi của bạn.`
                     : "Hít thở thật chậm. Mọi câu trả lời đều bắt đầu từ bên trong bạn.")
             }
             charIndex={Math.max(
@@ -790,6 +819,7 @@ function App() {
       </div>
     );
   const { config: c, session: s, connection } = state;
+  const intakeItem = s.intake ? s.queue.find((item) => item.id === s.intake!.itemId) : undefined;
   const pending = s.queue.filter(
     (q) => !["completed", "skipped", "reading"].includes(q.status),
   );
@@ -1081,6 +1111,17 @@ function App() {
                             ))}
                           </div>
                         </>
+                      ) : intakeItem ? (
+                        <>
+                          <div className="current-person">
+                            <Avatar user={intakeItem.user} />
+                            <div>
+                              <strong>{intakeItem.user.name}</strong>
+                              <span>{intakeItem.topicChosen ? `Chờ câu hỏi về ${intakeItem.topic.toLocaleLowerCase("vi")}` : "Đang chọn chủ đề trên overlay"}</span>
+                            </div>
+                          </div>
+                          <p>Đến lượt người xem này. Tiệm đang nhận bình luận trực tiếp của họ trước khi xào bài.</p>
+                        </>
                       ) : (
                         <div className="no-reading">
                           <span>☾</span>
@@ -1114,8 +1155,8 @@ function App() {
                       </button>
                       <button
                         title="Bỏ qua lượt hiện tại"
-                        onClick={() => action({ type: "skip" })}
-                        disabled={!s.active}
+                        onClick={() => action(s.active ? { type: "skip" } : { type: "queue-skip", id: intakeItem?.id })}
+                        disabled={!s.active && !intakeItem}
                       >
                         <Icon name="skip" size={18} />
                       </button>
@@ -1576,14 +1617,12 @@ function Rules({
             if (!value || Array.isArray(value) || typeof value !== "object")
               throw Error();
             save({
-              joinMode: draft.joinMode,
-              minCoins: draft.minCoins,
+              joinMode: "gift_priority",
               giftValues: value,
-              command: draft.command,
               matchWindowSec: draft.matchWindowSec,
               cooldownSec: draft.cooldownSec,
               maxQuestionLength: draft.maxQuestionLength,
-              priority: draft.priority,
+              priority: true,
               maxWaitSec: draft.maxWaitSec,
               moderation: draft.moderation,
             });
@@ -1593,25 +1632,13 @@ function Rules({
           }
         }}
       >
-        <Field label="Chế độ tham gia">
-          <select
-            value={draft.joinMode}
-            onChange={(e) => set("joinMode", e.target.value)}
-          >
-            <option value="gift_question">Quà đủ điều kiện + câu hỏi</option>
-            <option value="free">Bình luận xếp hàng miễn phí</option>
-            <option value="gift_priority">
-              Bình luận vào hàng, quà tăng ưu tiên
-            </option>
-          </select>
-        </Field>
+        <div className="participation-guide">
+          <strong>Tặng quà hoặc bình luận “tarot” để vào hàng</strong>
+          <p>Người tặng quà được ưu tiên. Đến lượt, overlay gọi đúng tên và hỏi
+            chủ đề, sau đó nhận câu hỏi cụ thể từ bình luận của người đó.</p>
+          <span>Không cần cú pháp · Một lượt cho mỗi tài khoản</span>
+        </div>
         <div className="form-grid">
-          <NumberField
-            label="Quà tối thiểu (xu)"
-            value={draft.minCoins}
-            onChange={(v) => set("minCoins", v)}
-            min={1}
-          />
           <NumberField
             label="Cửa sổ ghép (giây)"
             value={draft.matchWindowSec}
@@ -1631,18 +1658,6 @@ function Rules({
             max={500}
           />
         </div>
-        <Field label="Lệnh nhận câu hỏi">
-          <input
-            value={draft.command}
-            onChange={(e) => set("command", e.target.value)}
-          />
-        </Field>
-        <Toggle
-          label="Ưu tiên theo giá trị quà"
-          hint="Cùng điểm theo FIFO, không ngắt lượt đang đọc"
-          checked={draft.priority}
-          onChange={(v) => set("priority", v)}
-        />
         <NumberField
           label="Chờ tối đa trước khi được bảo vệ ưu tiên (giây)"
           value={draft.maxWaitSec}
@@ -1797,7 +1812,7 @@ function Appearance({
         </Field>
         <Field
           label="Hướng dẫn đầu màn hình"
-          hint="Dùng {command}, {minCoins}, {heartGoal} để giá trị tự cập nhật."
+          hint="Dùng {heartGoal} để mốc tim tự cập nhật. Người xem tham gia bằng quà hoặc bình luận tarot."
         >
           <input
             value={d.instruction}
@@ -2154,24 +2169,17 @@ function AudioSettings({
         </FormPanel>
         <FormPanel
           title="Hỏi đáp sau trải bài"
-          description="Giữ đúng người vừa xem bài để hỏi tiếp về ba lá vừa mở, tối đa ba câu. Có thể kết thúc sớm tại phòng điều hành."
+          description="Người vừa xem được hỏi thêm ba câu bằng bình luận thường. Mỗi câu có 30 giây để hỏi; đồng hồ mới bắt đầu sau khi đọc xong câu trả lời trước."
           onSave={() => save({
             followUpEnabled: d.followUpEnabled,
-            followUpWindowSec: d.followUpWindowSec,
+            followUpWindowSec: 30,
           })}
         >
           <Toggle
             label="Cho phép hỏi tiếp sau tổng kết"
-            hint="Gửi !hoi rồi bình luận câu hỏi"
+            hint="Nhận bình luận trực tiếp từ đúng người vừa xem · Mỗi câu có 30 giây"
             checked={d.followUpEnabled}
             onChange={(value) => set("followUpEnabled", value)}
-          />
-          <NumberField
-            label="Thời gian hỏi đáp tối đa (giây)"
-            value={d.followUpWindowSec}
-            min={30}
-            max={120}
-            onChange={(value) => set("followUpWindowSec", value)}
           />
         </FormPanel>
         <FormPanel
@@ -2259,7 +2267,7 @@ function ConnectionView({
 }) {
   const [url, setUrl] = useState(state.connection.url);
   const [raw, setRaw] = useState(
-    '{"event":"chat","data":{"userId":"demo-custom","nickname":"Người thử","msgId":"test-1","comment":"!tarot tình duyên | Tôi nên chú ý điều gì?"}}',
+    '{"event":"chat","data":{"userId":"demo-custom","nickname":"Người thử","msgId":"test-1","comment":"tarot tình duyên, Tôi và người ấy có thể đi đường dài không?"}}',
   );
   const [rawError, setRawError] = useState("");
   return (

@@ -207,7 +207,7 @@ async function checkFeature() {
           ...syntheticIdentity,
           uniqueId: "codex_ai_test",
           msgId: `synthetic-${Date.now()}`,
-          comment: `!tarot công việc | ${syntheticQuestion}`,
+          comment: `tarot công việc | ${syntheticQuestion}`,
         },
       },
     });

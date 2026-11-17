@@ -30,6 +30,7 @@ import { Store } from "./store.ts";
 import { normalizeEnvelope } from "./tikfinity.ts";
 import { sentenceRanges } from "../shared/text.ts";
 import { completedQuestionRepeat, expiredChatReplayKeys, missingIdChatReplay, normalizeChatText } from "./chat-guard.ts";
+import { parseConversation } from "./conversation.ts";
 
 const AUDIO_INITIAL_GRACE_MS = 10_000;
 const AUDIO_HEARTBEAT_GRACE_MS = 6_000;
@@ -45,8 +46,9 @@ interface AudioLease {
 }
 
 export const DEFAULT_CONFIG: Config = {
+  conversationVersion: 2,
   shopName: "TIỆM TAROT",
-  instruction: "Bình luận {command} chủ đề | câu hỏi",
+  instruction: "Bình luận tarot hoặc tặng quà để vào hàng chờ · Ưu tiên người tặng quà",
   footer: "Một câu hỏi, ba lá bài, một khoảng lặng cho chính bạn.",
   accent: "#ef9ad5",
   cyan: "#71d9df",
@@ -60,26 +62,26 @@ export const DEFAULT_CONFIG: Config = {
   backgroundAsset: "",
   cardBackAsset: "/assets/card-back.svg",
   cardAssets: {},
-  joinMode: "gift_question",
+  joinMode: "gift_priority",
   minCoins: 1,
   giftValues: {},
-  command: "!tarot",
+  command: "tarot",
   matchWindowSec: 300,
   cooldownSec: 15,
   maxQuestionLength: 220,
-  priority: false,
+  priority: true,
   maxWaitSec: 600,
   moderation: false,
   accepting: true,
-  autoRun: false,
+  autoRun: true,
   reversed: true,
   heartGoal: 3000,
   communityCooldownSec: 90,
   maxCommunityPending: 1,
   durations: {
     locking: 2,
-    shuffling: 3,
-    dealing: 2,
+    shuffling: 5,
+    dealing: 5,
     card: 24,
     summary: 20,
     complete: 6,
@@ -88,7 +90,7 @@ export const DEFAULT_CONFIG: Config = {
   aiModel: "",
   aiTimeoutSec: 18,
   followUpEnabled: true,
-  followUpWindowSec: 120,
+  followUpWindowSec: 30,
   displayWords: 65,
   summaryWords: 50,
   ttsProvider: "browser",
@@ -127,6 +129,13 @@ function safeAsset(x: unknown) {
 }
 export function validateConfig(input: unknown, previous: Config): Config {
   if (!isRecord(input)) throw new Error("Cấu hình phải là một object.");
+  if (input.conversationVersion !== 2 && "shopName" in input && "joinMode" in input && "durations" in input) {
+    return validateConfig({ ...input, conversationVersion: 2, command: "tarot", joinMode: "gift_priority",
+      priority: true, autoRun: true, followUpWindowSec: 30,
+      instruction: DEFAULT_CONFIG.instruction,
+      durations: { ...(isRecord(input.durations) ? input.durations : {}), shuffling: 5, dealing: 5 },
+    }, previous);
+  }
   const out = structuredClone(previous);
   const strings: Record<string, number> = {
     shopName: 70,
@@ -142,8 +151,8 @@ export function validateConfig(input: unknown, previous: Config): Config {
         throw new Error(`Giá trị ${key} không hợp lệ.`);
       (out as unknown as Record<string, unknown>)[key] = input[key];
     }
-  if (!/^!\S{1,18}$/u.test(out.command))
-    throw new Error("Lệnh phải bắt đầu bằng ! và không có khoảng trắng.");
+  if (!/^!?\S{1,18}$/u.test(out.command))
+    throw new Error("Từ khóa tham gia không được chứa khoảng trắng.");
   const bools = [
     "reducedMotion",
     "priority",
@@ -163,6 +172,7 @@ export function validateConfig(input: unknown, previous: Config): Config {
       out[key] = input[key];
     }
   const nums: Record<string, [number, number]> = {
+    conversationVersion: [2, 2],
     fontScale: [0.9, 1.15],
     safeTop: [0, 80],
     safeBottom: [0, 100],
@@ -292,10 +302,10 @@ export function parseQuestion(
     /(?:https?:\/\/|www\.)/iu.test(text)
   )
     return;
-  const command = text
+  const command = [config.command, "!tarot"].find((value) => text
     .toLocaleLowerCase("vi")
-    .startsWith(config.command.toLocaleLowerCase("vi") + " ");
-  const raw = command ? text.slice(config.command.length).trim() : text;
+    .startsWith(value.toLocaleLowerCase("vi") + " "));
+  const raw = command ? text.slice(command.length).trim() : text;
   const lower = raw.toLocaleLowerCase("vi");
   const topic = TOPICS.find((t) => lower.startsWith(t.toLocaleLowerCase("vi")));
   let question: string;
@@ -382,9 +392,11 @@ export class Engine {
       demo: blankSession(),
       live: blankSession(),
     };
-    for (const session of Object.values(this.sessions))
+    for (const session of Object.values(this.sessions)) {
       session.hearts.consumed ??=
         session.hearts.milestones * this.config.heartGoal;
+      for (const item of session.queue) item.topicChosen ??= !!item.question;
+    }
     for (const mode of ["demo", "live"] as Mode[]) {
       const a = this.sessions[mode].active;
       if (a || this.sessions[mode].queue.some(unresolved))
@@ -690,6 +702,7 @@ export class Engine {
     if (!event.roomId) return;
     const s = this.sessions[mode];
     if (s.roomId && s.roomId !== event.roomId) {
+      s.intake = undefined;
       s.hearts = { total: 0, milestones: 0, consumed: 0, roomId: event.roomId };
       for (const q of s.queue)
         if (q.community && unresolved(q)) q.status = "skipped";
@@ -727,10 +740,7 @@ export class Engine {
     }
     if (key) s.seen[key] = now;
     for (const expired of expiredChatReplayKeys(s.seen, now)) delete s.seen[expired];
-    // A bare trigger is idempotent and may legitimately be reused for the next
-    // question inside five seconds. Actual question comments still use the guard.
-    const bareFollowUp = event.type === "chat" && /^!(?:hoi|hỏi)$/iu.test((event.comment || "").normalize("NFC").trim());
-    const replay = bareFollowUp ? undefined : missingIdChatReplay(event, s.seen, now, s.roomId);
+    const replay = missingIdChatReplay(event, s.seen, now, s.roomId);
     if (replay?.duplicate) {
       this.log(mode, "chat", "duplicate", "Bình luận thiếu msgId trùng người và nội dung trong 5 giây; không áp dụng lại.");
       this.changed(mode);
@@ -779,132 +789,84 @@ export class Engine {
       return;
     }
     const comment = (event.comment || "").normalize("NFC").trim();
-    const followUpCommand = comment.match(/^!(?:hoi|hỏi)(?:\s+([\s\S]*))?$/iu);
-    const awaitingQuestion = s.active?.followUp?.awaitingQuestion && s.active.user.id === event.user.id && !comment.startsWith("!");
-    if (followUpCommand || awaitingQuestion) {
-      try {
-        const activeRoom = s.active && s.queue.find((item) => item.id === s.active!.itemId)?.roomId;
-        const eventRoom = event.roomId || s.roomId;
-        if (activeRoom && eventRoom && activeRoom !== eventRoom)
-          throw new Error("Câu hỏi tiếp không thuộc phòng của lượt đang xem.");
-        if (followUpCommand && !followUpCommand[1]?.trim()) {
-          const reading = this.requireFollowUp(mode, undefined, event.user.id);
-          if (reading.followUp!.questions.length >= 3)
-            throw new Error("Mỗi người được hỏi tối đa 3 câu sau trải bài.");
-          reading.followUp!.awaitingQuestion = true;
-          this.log(mode, "followup", "awaiting_question", "Đã nhận !hoi; chờ nội dung câu hỏi ở bình luận tiếp theo của đúng người vừa xem bài.");
-        } else {
-          this.askFollowUp(mode, followUpCommand?.[1] || comment, event.user.id);
-        }
-      } catch (error) {
-        this.log(mode, "followup", "ignored", (error as Error).message);
+    const eventRoom = event.roomId || s.roomId;
+    const active = s.active;
+    if (active?.user.id === event.user.id) {
+      const activeRoom = s.queue.find((item) => item.id === active.itemId)?.roomId;
+      if (activeRoom && eventRoom && activeRoom !== eventRoom) {
+        this.log(mode, "chat", "ignored", "Bình luận không thuộc phòng của lượt đang xem.");
+        return;
       }
+      if (active.followUp && !active.followUp.closedReason) {
+        try { this.askFollowUp(mode, comment, event.user.id); }
+        catch (error) { this.log(mode, "followup", "ignored", (error as Error).message); }
+      } else this.log(mode, "chat", "locked", "Câu hỏi đã chốt; chờ đọc xong để hỏi thêm bằng bình luận.");
       return;
     }
-    const parsed = parseQuestion(event.comment || "", this.config);
-    if (!parsed) {
-      this.log(
-        mode,
-        "chat",
-        "ignored",
-        "Không phải câu hỏi tarot hợp lệ, quá dài hoặc bị lọc spam.",
-      );
+    let q = s.queue.find((item) => item.user.id === event.user!.id && unresolved(item) && (!item.roomId || !eventRoom || item.roomId === eventRoom));
+    let parsed = parseConversation(comment, this.config.maxQuestionLength, q?.topicChosen ? q.topic : undefined);
+    if (!parsed && /^!tarot\s/iu.test(comment)) {
+      const legacy = parseQuestion(comment, { ...this.config, command: "!tarot" });
+      if (legacy) parsed = { ...legacy, join: true };
+    }
+    if (!parsed || (!q && !parsed.join)) {
+      this.log(mode, "chat", "ignored", "Bình luận tarot hoặc tặng quà để vào hàng chờ.");
       return;
     }
-    if (!this.config.accepting) {
-      this.log(mode, "chat", "closed", "Đang đóng nhận lượt.");
+    if (!q && !this.config.accepting) {
+      this.log(mode, "chat", "closed", "Đang đóng nhận lượt mới.");
       return;
     }
-    if (s.active?.user.id === event.user.id) {
-      this.log(
-        mode,
-        "chat",
-        "locked",
-        s.active.followUp && !s.active.followUp.closedReason
-          ? "Người này đang ở phần hỏi đáp; gửi !hoi rồi bình luận câu hỏi. Không tạo lại trải bài từ lệnh cũ."
-          : "Người này đang đọc; câu hỏi đã khóa. Quà mới vẫn được lưu riêng.",
-      );
-      return;
-    }
-    if (completedQuestionRepeat(s.queue, {
-      userId: event.user.id,
-      roomId: event.roomId || s.roomId,
-      ...parsed,
+    if (parsed.question && parsed.topic && completedQuestionRepeat(s.queue, {
+      userId: event.user.id, roomId: eventRoom, topic: parsed.topic, question: parsed.question,
     }, now)) {
-      this.log(mode, "chat", "repeated_question", "Cùng tài khoản vừa xem đúng câu hỏi này; chờ 2 phút sau khi hoàn tất hoặc gửi câu hỏi mới. Lệnh lặp không tạo lượt mới.");
-      return;
-    }
-    let q = s.queue.find((q) => q.user.id === event.user!.id && unresolved(q));
-    if (q && q.question === parsed.question && q.topic === parsed.topic) {
-      this.log(mode, "chat", "ignored", "Câu hỏi không thay đổi.");
-      return;
-    }
-    if (q?.question && now - q.updatedAt < 1000) {
-      this.log(mode, "chat", "spam", "Giới hạn cập nhật một câu hỏi mỗi giây.");
+      this.log(mode, "chat", "repeated_question", "Câu hỏi này vừa được xem; chờ 2 phút hoặc gửi câu hỏi khác.");
       return;
     }
     if (!q) {
-      const previous = s.queue
-        .filter(
-          (q) =>
-            q.user.id === event.user!.id &&
-            ["completed", "skipped"].includes(q.status),
-        )
+      const previous = s.queue.filter((item) => item.user.id === event.user!.id && ["completed", "skipped"].includes(item.status))
         .sort((a, b) => b.updatedAt - a.updatedAt)[0];
-      if (
-        previous &&
-        now - previous.updatedAt < this.config.cooldownSec * 1000
-      ) {
-        this.log(
-          mode,
-          "chat",
-          "cooldown",
-          "Chưa hết thời gian nghỉ giữa hai lượt.",
-        );
+      if (previous && now - previous.updatedAt < this.config.cooldownSec * 1000) {
+        this.log(mode, "chat", "cooldown", "Chưa hết thời gian nghỉ giữa hai lượt.");
         return;
       }
-      q = {
-        id: randomUUID(),
-        user: event.user,
-        roomId: event.roomId || s.roomId,
-        topic: parsed.topic,
-        question: parsed.question,
-        status: "waiting_condition",
-        createdAt: now,
-        updatedAt: now,
-        coins: 0,
-        creditIds: [],
-        order: now,
-        approved: !this.config.moderation,
-      };
-      s.queue.push(q);
-    } else {
-      if (!q.question)
-        for (const c of s.credits)
-          if (
-            c.usedBy === q.id &&
-            now - c.at > this.config.matchWindowSec * 1000
-          ) {
-            c.usedBy = undefined;
-            c.review =
-              "Quà quá cửa sổ ghép tự động; admin có thể xác nhận và ghép thủ công.";
-            q.creditIds = q.creditIds.filter((id) => id !== c.id);
-            q.coins -= c.coins || 0;
-          }
-      q.user = event.user;
-      q.roomId = event.roomId || s.roomId || q.roomId;
-      q.topic = parsed.topic;
-      q.question = parsed.question;
-      q.updatedAt = now;
+      q = this.enqueue(event, mode);
     }
+    if (!q.question && parsed.question) {
+      for (const credit of s.credits) {
+        if (credit.usedBy === q.id && now - credit.at > this.config.matchWindowSec * 1000) {
+          credit.usedBy = undefined;
+          credit.review = "Quà quá cửa sổ ghép tự động; admin có thể xác nhận và ghép thủ công.";
+          q.creditIds = q.creditIds.filter((id) => id !== credit.id);
+          q.coins = Math.max(0, q.coins - (credit.coins || 0));
+        }
+      }
+    }
+    const previousTopic = q.topicChosen ? q.topic : undefined;
+    if (parsed.topic) {
+      if (q.topicChosen && q.topic !== parsed.topic) q.question = "";
+      q.topic = parsed.topic;
+      q.topicChosen = true;
+    }
+    if (parsed.question && q.topicChosen) q.question = parsed.question;
+    q.user = event.user;
+    q.updatedAt = now;
     this.matchCredits(q, mode);
     this.qualify(q);
-    this.log(
-      mode,
-      "chat",
-      q.status,
-      `Đã ghi câu hỏi của ${event.user.name} (${event.user.id}).`,
-    );
+    if (s.intake?.itemId === q.id && parsed.topic && parsed.topic !== previousTopic && !q.question)
+      s.intake.deadline = now + 60_000;
+    this.log(mode, "chat", q.status, q.question ? "Đã nhận câu hỏi của " + event.user.name : "Đã xếp " + event.user.name + " vào hàng chờ; chờ chọn chủ đề và câu hỏi.");
+  }
+  private enqueue(event: NormalizedEvent, mode: Mode): QueueItem {
+    const now = this.now();
+    const q: QueueItem = {
+      id: randomUUID(), user: event.user!, roomId: event.roomId || this.sessions[mode].roomId,
+      topic: "Tình duyên", topicChosen: false, question: "", status: "waiting_question",
+      createdAt: now, updatedAt: now, coins: 0, creditIds: [], order: now,
+      approved: !this.config.moderation,
+    };
+    this.sessions[mode].queue.push(q);
+    return q;
   }
   private qualify(q: QueueItem) {
     if (!q.question) q.status = "waiting_question";
@@ -922,6 +884,7 @@ export class Engine {
     for (const c of s.credits) {
       if (
         c.userId !== q.user.id ||
+        (c.roomId && q.roomId && c.roomId !== q.roomId) ||
         c.usedBy ||
         c.review ||
         c.coins === null ||
@@ -944,6 +907,11 @@ export class Engine {
         "Thiếu ID người hoặc loại quà; giữ cảnh báo, không gán credit cho người đoán.",
       );
       return;
+    }
+    if (s.active?.user.id !== event.user.id) {
+      let q = s.queue.find((item) => item.user.id === event.user!.id && unresolved(item) && (!item.roomId || !s.roomId || item.roomId === s.roomId));
+      if (!q && this.config.accepting) q = this.enqueue(event, mode);
+      if (q) q.gifted = true;
     }
     if (
       event.repeatCount === undefined ||
@@ -1042,12 +1010,12 @@ export class Engine {
         (unit === undefined
           ? "Chưa biết giá trị xu; bổ sung bảng quy đổi rồi xác nhận."
           : undefined),
-      roomId: event.roomId,
+      roomId: event.roomId || s.roomId,
     };
     s.credits.push(credit);
     if (!credit.review && s.active?.user.id !== event.user!.id) {
       let q = s.queue.find(
-        (q) => q.user.id === event.user!.id && unresolved(q),
+        (q) => q.user.id === event.user!.id && unresolved(q) && (!q.roomId || !credit.roomId || q.roomId === credit.roomId),
       );
       if (!q && this.config.accepting) {
         q = {
@@ -1176,19 +1144,21 @@ export class Engine {
   }
   private next(mode: Mode) {
     return this.sessions[mode].queue
-      .filter((q) => q.status === "ready")
+      .filter((q) => (q.status === "ready" || q.status === "waiting_question") &&
+        (!this.config.moderation || q.approved) &&
+        (!q.roomId || !this.sessions[mode].roomId || q.roomId === this.sessions[mode].roomId))
       .sort((a, b) => this.compareQueue(a, b))[0];
   }
   private compareQueue(a: QueueItem, b: QueueItem) {
-    if (a.status !== b.status) {
-      if (a.status === "ready") return -1;
-      if (b.status === "ready") return 1;
-    }
     if (a.community !== b.community) return a.community ? -1 : 1;
     const now = this.now();
     const agedA = now - a.createdAt >= this.config.maxWaitSec * 1000,
       agedB = now - b.createdAt >= this.config.maxWaitSec * 1000;
     if (agedA !== agedB) return agedA ? -1 : 1;
+    if (!agedA && (this.config.priority || this.config.joinMode === "gift_priority")) {
+      const giftA = !!a.gifted || a.coins > 0, giftB = !!b.gifted || b.coins > 0;
+      if (giftA !== giftB) return giftA ? -1 : 1;
+    }
     if (
       !agedA &&
       (this.config.priority || this.config.joinMode === "gift_priority") &&
@@ -1202,20 +1172,39 @@ export class Engine {
   }
   private maybeStart(mode: Mode) {
     if (
-      this.config.autoRun &&
+      (this.config.autoRun || !!this.sessions[mode].intake) &&
       !this.restartHold.has(mode) &&
       !this.sessions[mode].active
     )
       this.start(mode);
   }
   start(mode: Mode, id?: string) {
+    const recovering = this.restartHold.has(mode);
     this.restartHold.delete(mode);
     const s = this.sessions[mode];
+    if (recovering && s.intake) {
+      s.intake.startedAt = this.now();
+      s.intake.deadline = this.now() + 60_000;
+      this.changed(mode);
+    }
     if (s.active) return;
-    const q = id
-      ? s.queue.find((q) => q.id === id && q.status === "ready")
-      : this.next(mode);
+    let q = s.intake && s.queue.find((item) => item.id === s.intake!.itemId && unresolved(item));
+    if (!q) {
+      s.intake = undefined;
+      q = id ? s.queue.find((q) => q.id === id && unresolved(q)) : this.next(mode);
+    }
     if (!q) return;
+    if (this.config.moderation && !q.approved) return;
+    if (!q.question) {
+      if (!s.intake) {
+        s.intake = { itemId: q.id, startedAt: this.now(), deadline: this.now() + 60_000 };
+        this.log(mode, "intake", "opened", `Mời ${q.user.name} chọn chủ đề và bình luận câu hỏi.`);
+        this.changed(mode);
+      }
+      return;
+    }
+    if (q.status !== "ready") return;
+    s.intake = undefined;
     const pool = [...CARDS];
     const cards = Array.from({ length: 3 }, (_, position) => {
       const c = pool.splice(this.rng(pool.length), 1)[0];
@@ -1310,13 +1299,14 @@ export class Engine {
     const now = this.now();
     a.followUp = {
       openedAt: now,
-      deadline: now + Math.min(120, a.config.followUpWindowSec || 120) * 1000,
+      deadline: now + 30_000,
       questions: [],
+      awaitingQuestion: true,
     };
     this.resetController(mode);
     a.generation = (a.generation || 0) + 1;
     this.changePhase(mode, "followup");
-    this.log(mode, "followup", "opened", "Giữ đúng người vừa xem tối đa 2 phút, nhận tối đa 3 câu !hoi dựa trên ba lá đã chốt.");
+    this.log(mode, "followup", "opened", "Mời người vừa xem bình luận trực tiếp tối đa 3 câu; mỗi câu có 30 giây để đặt câu hỏi.");
     this.changed(mode);
     return true;
   }
@@ -1338,9 +1328,9 @@ export class Engine {
       throw new Error("Lượt xem bài đã thay đổi. Hãy tải trạng thái mới trước khi hỏi tiếp.");
     if (userId !== undefined && userId !== a.user.id)
       throw new Error("Chỉ đúng tài khoản vừa xem bài được hỏi tiếp trong lượt này.");
-    if (this.now() >= a.followUp.deadline) {
+    if (a.followUp.deadline > 0 && this.now() >= a.followUp.deadline) {
       this.endFollowUp(mode, "timeout");
-      throw new Error("Đã hết thời gian hỏi đáp 2 phút.");
+      throw new Error("Đã hết 30 giây chờ câu hỏi.");
     }
     if (a.paused && !allowPaused) throw new Error("Hãy tiếp tục lượt đang tạm dừng trước khi gửi câu hỏi.");
     return a;
@@ -1349,16 +1339,17 @@ export class Engine {
     const a = this.requireFollowUp(mode, readingId, userId);
     if (typeof value !== "string") throw new Error("Cần nhập câu hỏi tiếp.");
     const question = value.normalize("NFC").trim().replace(/\s+/gu, " ");
-    if (question.length < 8 || question.length > 500 || !/[\p{L}]/u.test(question) || /(?:https?:\/\/|www\.)/iu.test(question))
+    if (!parseConversation(question, 500, a.topic)?.question || question.startsWith("!"))
       throw new Error("Câu hỏi tiếp cần 8–500 ký tự, không chứa liên kết.");
     const existing = a.followUp!.questions.find((item) => normalizeChatText(item.question) === normalizeChatText(question));
     if (existing) {
       if (existing.status === "failed") this.retryFollowUp(mode, existing.id, a.id);
       else this.log(mode, "followup", "duplicate", "Câu hỏi tiếp đã được nhận; không dùng thêm lượt hỏi.");
-      a.followUp!.awaitingQuestion = false;
       return;
     }
     if (a.followUp!.questions.length >= 3) throw new Error("Mỗi người được hỏi tối đa 3 câu sau trải bài.");
+    if (a.phase !== "followup" || !a.followUp!.awaitingQuestion)
+      throw new Error("Tiệm đang trả lời câu hiện tại; hãy chờ khung hỏi tiếp mở lại.");
     a.followUp!.questions.push({ id: randomUUID(), question, status: "queued", askedAt: this.now(), attempts: 0 });
     a.followUp!.awaitingQuestion = false;
     this.log(mode, "followup", "queued", `Đã nhận câu hỏi tiếp ${a.followUp!.questions.length}/3 của đúng tài khoản vừa xem.`);
@@ -1371,6 +1362,7 @@ export class Engine {
     if ((question.attempts || 0) >= 3) throw new Error("Câu hỏi này đã thử tối đa 3 lần. Có thể kết thúc hỏi đáp để tiếp tục hàng chờ.");
     if (this.now() - (question.answeredAt || question.askedAt) < 5000)
       throw new Error("Chờ 5 giây trước khi thử lại câu hỏi bị lỗi.");
+    if (a.phase !== "followup" || this.followUpPending[mode]) throw new Error("Đang trả lời câu hỏi khác.");
     question.status = "queued";
     question.error = undefined;
     this.processFollowUp(mode);
@@ -1378,12 +1370,14 @@ export class Engine {
   private processFollowUp(mode: Mode) {
     const a = this.sessions[mode].active;
     if (!a || a.paused || a.phase !== "followup" || !a.followUp || a.followUp.closedReason || this.followUpPending[mode]) return;
-    if (this.now() >= a.followUp.deadline) { this.endFollowUp(mode, "timeout"); return; }
+    if (a.followUp.deadline > 0 && this.now() >= a.followUp.deadline) { this.endFollowUp(mode, "timeout"); return; }
     const question = a.followUp.questions.find((item) => item.status === "queued");
     if (!question) return;
     question.status = "generating";
     question.attempts = (question.attempts || 0) + 1;
     a.followUp.currentQuestionId = question.id;
+    a.followUp.deadline = 0;
+    a.followUp.awaitingQuestion = false;
     const job = {
       readingId: a.id,
       questionId: question.id,
@@ -1399,7 +1393,7 @@ export class Engine {
       try {
         const answer = await generateFollowUpAI(a, question.question, previous, job.signal);
         const current = this.sessions[mode].active;
-        if (this.followUpPending[mode] !== job || job.signal.aborted || current?.id !== a.id || current.generation !== job.generation || current.paused || !current.followUp || this.now() >= current.followUp.deadline) return;
+        if (this.followUpPending[mode] !== job || job.signal.aborted || current?.id !== a.id || current.generation !== job.generation || current.paused || !current.followUp) return;
         question.answer = answer;
         question.status = "answered";
         question.answeredAt = this.now();
@@ -1410,11 +1404,14 @@ export class Engine {
         this.changed(mode);
       } catch (error) {
         const current = this.sessions[mode].active;
-        if (this.followUpPending[mode] !== job || job.signal.aborted || current?.id !== a.id || current.generation !== job.generation || !current.followUp || this.now() >= current.followUp.deadline) return;
+        if (this.followUpPending[mode] !== job || job.signal.aborted || current?.id !== a.id || current.generation !== job.generation || !current.followUp) return;
         question.status = "failed";
         question.error = aiFailureMessage(error);
         question.answeredAt = this.now();
         current.followUp.currentQuestionId = undefined;
+        current.followUp.awaitingQuestion = true;
+        current.followUp.deadline = this.now() + 30_000;
+        this.changePhase(mode, "followup");
         this.log(mode, "followup", "failed", question.error);
         this.changed(mode);
       } finally {
@@ -1484,7 +1481,7 @@ export class Engine {
       a = s.active;
     if (!a || a.paused) return;
     const pending = this.aiPending[mode];
-    if (a.followUp && !a.followUp.closedReason && this.now() >= a.followUp.deadline) {
+    if (a.followUp && !a.followUp.closedReason && a.followUp.deadline > 0 && this.now() >= a.followUp.deadline) {
       this.endFollowUp(mode, "timeout");
       return;
     }
@@ -1493,11 +1490,13 @@ export class Engine {
       return;
     }
     if (a.phase === "answer") {
-      if (a.followUp!.questions.filter((item) => item.status === "answered").length >= 3) {
+      if (a.followUp!.questions.length >= 3) {
         this.endFollowUp(mode, "answered");
         return;
       }
       a.followUp!.currentQuestionId = undefined;
+      a.followUp!.awaitingQuestion = true;
+      a.followUp!.deadline = this.now() + 30_000;
       a.generation = (a.generation || 0) + 1;
       this.resetController(mode);
       this.changePhase(mode, "followup");
@@ -1557,8 +1556,18 @@ export class Engine {
   }
   tick() {
     for (const mode of ["demo", "live"] as Mode[]) {
+      const session = this.sessions[mode];
+      if (session.intake && !this.restartHold.has(mode)) {
+        const item = session.queue.find((q) => q.id === session.intake!.itemId && unresolved(q));
+        if (!item || this.now() >= session.intake.deadline) {
+          if (item) { item.status = "skipped"; item.updatedAt = this.now(); }
+          session.intake = undefined;
+          this.log(mode, "intake", "closed", "Đã hết thời gian chờ chọn chủ đề/câu hỏi; mời người tiếp theo.");
+          this.changed(mode);
+        }
+      }
       const a = this.sessions[mode].active;
-      if (a?.followUp && !a.followUp.closedReason && this.now() >= a.followUp.deadline) {
+      if (a?.followUp && !a.followUp.closedReason && a.followUp.deadline > 0 && this.now() >= a.followUp.deadline) {
         this.endFollowUp(mode, "timeout");
       }
       if (a?.phase === "followup" && !a.paused) this.processFollowUp(mode);
@@ -1685,6 +1694,7 @@ export class Engine {
           throw new Error("Chủ đề không hợp lệ.");
         q.question = action.question.trim();
         q.topic = action.topic as Topic;
+        q.topicChosen = true;
         q.updatedAt = now;
         this.qualify(q);
         break;
@@ -1717,10 +1727,12 @@ export class Engine {
         if (q && unresolved(q)) {
           q.status = "skipped";
           q.updatedAt = now;
+          if (s.intake?.itemId === q.id) s.intake = undefined;
         }
         break;
       }
       case "clear-queue":
+        s.intake = undefined;
         for (const q of s.queue)
           if (unresolved(q)) {
             q.status = "skipped";
@@ -1858,7 +1870,7 @@ export class Engine {
       emit("chat", {
         ...user(i),
         msgId: randomUUID(),
-        comment: `!tarot ${TOPICS[i % 5]} | ${["Tôi nên chú ý điều gì trong mối quan hệ hiện tại?", "Tôi nên xây dựng thói quen chi tiêu như thế nào?", "Giai đoạn tới tôi nên tập trung phát triển điều gì?", "Tôi có thể cải thiện cách học như thế nào?", "Làm sao để lắng nghe người thân tốt hơn?"][i % 5]}`,
+        comment: `tarot ${TOPICS[i % 5]} | ${["Tôi nên chú ý điều gì trong mối quan hệ hiện tại?", "Tôi nên xây dựng thói quen chi tiêu như thế nào?", "Giai đoạn tới tôi nên tập trung phát triển điều gì?", "Tôi có thể cải thiện cách học như thế nào?", "Làm sao để lắng nghe người thân tốt hơn?"][i % 5]}`,
       });
     const gift = (i: number, id = randomUUID()) =>
       emit("gift", {

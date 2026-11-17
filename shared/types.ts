@@ -52,12 +52,14 @@ export interface QueueItem {
   id: string;
   user: User;
   topic: Topic;
+  topicChosen?: boolean;
   question: string;
   status: QueueStatus;
   createdAt: number;
   updatedAt: number;
   coins: number;
   creditIds: string[];
+  gifted?: boolean;
   community?: boolean;
   approved?: boolean;
   order?: number;
@@ -155,6 +157,7 @@ export interface HeartState {
 }
 export interface Session {
   queue: QueueItem[];
+  intake?: { itemId: string; startedAt: number; deadline: number };
   active: Reading | null;
   recentReadings?: Reading[];
   credits: Credit[];
@@ -166,6 +169,7 @@ export interface Session {
   roomId?: string;
 }
 export interface Config {
+  conversationVersion?: number;
   shopName: string;
   instruction: string;
   footer: string;

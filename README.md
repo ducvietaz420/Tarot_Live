@@ -38,12 +38,12 @@ Log khởi động và PID ở `data/startup.*.log`, `data/launcher.pid`. Khi mu
 
 ## Thử ngay khi chưa LIVE
 
-1. Mở `/demo`, chọn **Chạy một lượt demo**. Theo dõi chốt yêu cầu → xào → chia → ba lá → tổng kết → hỏi đáp nếu đã bật AI → hoàn tất.
+1. Mở `/demo`, chọn **Chạy một lượt demo**. Theo dõi chốt yêu cầu → xào xen kẽ hai nửa bộ bài → xòe bài → chọn ba lá → đọc bài → tổng kết → hỏi đáp nếu đã bật AI → hoàn tất.
 2. Dùng **10 người · trùng nickname**, **Quà trước câu hỏi**, **Câu hỏi trước quà**, **Combo 1 → 2 → 3 + lặp** và **Tim vượt mốc** để kiểm tra hàng chờ/credit. Hai người trùng nickname có ID riêng.
 3. Mở thêm overlay DEMO. Refresh chỉ nhận snapshot, không gọi AI, rút lại bài hoặc tạo lượt mới.
 4. Thử tạm dừng, tiếp tục, bỏ qua, đọc lại; thử giả lập AI timeout và TTS lỗi. Các nút lỗi mô phỏng chỉ tác động DEMO; không sửa trạng thái kết nối LIVE thật.
 
-Mặc định: quà đủ **1 xu + câu hỏi**, mục tiêu **3.000 tim**, cửa sổ ghép **5 phút**, chế độ chạy thủ công. Đây là giá trị thử, sửa được ở admin. Cấu hình được dùng chung giữa hai phiên; dữ liệu sự kiện, lượt, credit và tim tách riêng. Không tự đưa người xem hoặc quà demo vào LIVE khi TikFinity mất kết nối.
+Mặc định: bình luận **tarot** hoặc tặng quà để vào hàng chờ, **ưu tiên người tặng quà**, tự động gọi người tiếp theo khi sân khấu rảnh. Mục tiêu tim là **3.000**, cửa sổ ghép credit **5 phút**. Bản cập nhật chuyển cấu hình luồng cũ sang mặc định ưu tiên quà và tự động chạy; các lượt khôi phục vẫn chờ quản trị bấm bắt đầu/tiếp tục. Cấu hình dùng chung giữa hai phiên; sự kiện, hàng chờ, lượt, credit và tim tách riêng. Không tự đưa người xem hoặc quà DEMO vào LIVE khi TikFinity mất kết nối.
 
 ## Kết nối TikFinity thật
 
@@ -52,29 +52,31 @@ Mặc định: quà đủ **1 xu + câu hỏi**, mục tiêu **3.000 tim**, cử
 3. Kiểm tra riêng **Đã nối TikFinity** và **Đã nhận sự kiện LIVE**, cùng thời điểm sự kiện cuối. Nối socket chưa chứng minh đã nhận chat/quà.
 4. Gửi bình luận và quà đơn thực tế, xem loại sự kiện, trạng thái chuẩn hóa, ID người dùng, giá trị quà và cảnh báo trong log. Sau đó thử một combo ngắn trước khi phát chính thức.
 
+Bình luận **tarot** hoặc tặng quà để vào hàng chờ. Đến lượt, một khung giữa overlay gọi đúng tên người xem và mời chọn **Tình duyên, Công việc, Tiền bạc, Học hành hoặc Gia đình**. Người đó trả lời bằng bình luận thường:
+
 ```text
-!tarot tình duyên | Tôi nên chú ý điều gì trong mối quan hệ này?
-!tarot công việc | Giai đoạn tới tôi nên tập trung vào đâu?
-Tình duyên: cho em xem mối quan hệ hiện tại
+Tôi muốn xem về tình duyên
 ```
 
-Lệnh `!tarot`, chế độ tham gia và giới hạn sửa được ở **Quy tắc tham gia**. Comment chào hỏi/emoji không tự tạo lượt. Không cần ngày sinh, số điện thoại hoặc cookie TikTok.
+Nếu mới có chủ đề, tiệm hỏi tiếp về điều người xem muốn tìm hiểu. Ví dụ bình luận tiếp: **Tôi và bạn gái có ở bên nhau dài lâu không?** Có thể trả lời đủ trong một bình luận: **Tôi muốn xem về tình duyên, tôi và bạn gái có ở bên nhau dài lâu không?** Khi đã đủ chủ đề và câu hỏi, hệ thống chốt nội dung, xào, xòe bộ bài rồi chọn ba lá.
+
+Mỗi khung chọn chủ đề hoặc hỏi chi tiết có **60 giây** chờ trả lời; hết giờ sẽ bỏ qua người vắng và gọi người tiếp theo. Chỉ đúng ID tài khoản được gọi trong đúng phiên/phòng mới điền câu hỏi cho lượt đó. Bình luận chào hỏi/emoji không tự tạo lượt. Không cần ngày sinh, số điện thoại hoặc cookie TikTok. Xem [luồng hội thoại và thời gian chờ](docs/CONVERSATION-FLOW.md).
 
 Nếu log bắt đầu bằng **Thiếu msgId…**, bình luận vẫn có lớp lọc dự phòng: hash theo ID tài khoản, phòng và nội dung để bỏ bình luận giống nhau trong **5 giây**. Đây là cách chống lặp có giới hạn khi thiếu ID sự kiện, không phân biệt chắc chắn người dùng gõ lại với frame được gửi lại. Không dùng cách này để suy ra giao dịch quà.
 
-Sau khi một lượt **hoàn tất**, cùng tài khoản trong cùng phòng gửi lại đúng chủ đề và câu hỏi sẽ không tạo lượt mới trong **120 giây**, kể cả có `msgId` mới. So sánh bỏ qua hoa/thường và khoảng trắng tương đương, vẫn giữ ý nghĩa dấu tiếng Việt. Gửi câu hỏi khác vẫn theo thời gian nghỉ giữa lượt đã cấu hình; hết 120 giây, câu cũ cũng phải qua quy tắc tham gia và điều kiện quà như bình thường. Credit đã dùng không được cấp lại.
+Sau khi một lượt **hoàn tất**, cùng tài khoản trong cùng phòng gửi lại đúng chủ đề và câu hỏi sẽ không tạo lượt mới trong **120 giây**, kể cả có `msgId` mới. So sánh bỏ qua hoa/thường và khoảng trắng tương đương, vẫn giữ ý nghĩa dấu tiếng Việt. Gửi câu hỏi khác vẫn theo thời gian nghỉ giữa lượt đã cấu hình; hết 120 giây, câu cũ vẫn phải qua quy tắc tham gia như bình thường. Credit đã dùng không được cấp lại.
 
 Adapter hỗ trợ envelope `{event,data}`, cả field phẳng cũ và field lồng. Payload của phiên bản TikFinity Desktop thật vẫn cần đối chiếu tại máy phát; không mặc định theo schema upstream mới nhất. `roomUser` chỉ là thông tin thống kê, không tạo người xem riêng hoặc danh sách đầy đủ. AI/TTS không gửi bình luận hay lời đọc ngược qua Event API. Chi tiết, nguồn chính thức và giới hạn ở [docs/PROTOCOL.md](docs/PROTOCOL.md).
 
 ## Hàng chờ, quà và đối soát
 
 - Ghép bằng ID tài khoản ổn định, không bằng nickname. Mỗi người tối đa một lượt chưa hoàn tất; câu hỏi được sửa khi còn chờ và khóa ngay khi chốt lượt.
-- Ba chế độ: miễn phí qua bình luận; quà + câu hỏi; bình luận vào hàng/quà tăng ưu tiên. FIFO mặc định. Khi bật ưu tiên, chỉ dùng xu đã xác nhận của lượt đang chờ; cùng điểm FIFO và có giới hạn chờ để tránh bị đẩy xuống mãi.
-- Quà đến trước hoặc sau câu hỏi trong cửa sổ ghép đều được xử lý. Đủ quà nhưng chưa có câu hỏi sẽ **chờ câu hỏi**; có câu hỏi nhưng thiếu quà sẽ **chờ điều kiện**.
+- Mặc định dùng chế độ **bình luận vào hàng/quà tăng ưu tiên**. Người tặng quà được gọi trước người tham gia miễn phí; xu đã xác nhận dùng để so ưu tiên giữa các lượt tặng quà, cùng mức thì theo thứ tự vào hàng. Có giới hạn chờ để người cũ không bị đẩy xuống mãi. Quà mới không chen ngang lời mời hoặc lượt đang đọc.
+- Quà hoặc bình luận tarot tạo lượt **chờ câu hỏi** ngay cả khi chưa có chủ đề. Không bắt buộc tặng quà để xem trong chế độ mặc định.
 - Combo loại 1 dùng `repeatCount` cộng dồn và chốt credit sau kết thúc: `1,2,3,final 3` chỉ là 3 quà. ID loại quà không phải ID giao dịch. Sự kiện lặp và combo có định danh được lưu dấu trong SQLite.
-- Thiếu ID, giá trị xu hoặc metadata thì hiển thị cảnh báo/chờ kiểm tra. Không đoán giá quà, không quy đổi thành doanh thu tiền mặt. Bảng `giftId → xu` chỉ nhập giá đã xác minh. Thay bảng không tự tính lại quà cũ; dùng thao tác xác nhận credit khi cần.
+- Thiếu ID, giá trị xu hoặc metadata thì hiển thị cảnh báo/chờ kiểm tra. Quà có ID tài khoản và ID loại quà vẫn đưa người tặng vào hàng, kể cả khi giá trị xu chưa rõ; việc vào hàng không đồng nghĩa xác nhận credit. Không đoán giá quà, không quy đổi thành doanh thu tiền mặt. Bảng `giftId → xu` chỉ nhập giá đã xác minh. Thay bảng không tự tính lại quà cũ; dùng thao tác xác nhận credit khi cần.
 - Quà phát sinh trong lúc đang đọc được giữ riêng cho yêu cầu mới, không tự tạo lượt. Credit đã dùng không tái sử dụng. Bỏ qua/xóa hàng chờ giữ lịch sử; admin xử lý hoàn credit rõ ràng, không âm thầm xóa số dư.
-- Credit hết cửa sổ ghép vẫn được giữ để đối soát. Admin có thể xác nhận giá trị, ghép số dư tồn đúng tài khoản hoặc hoàn credit của lượt đã bỏ qua theo tình huống thực tế.
+- Credit hết cửa sổ ghép hoặc lượt bị bỏ qua vì không trả lời vẫn được giữ để đối soát. Admin có thể xác nhận giá trị, ghép số dư tồn đúng tài khoản hoặc hoàn credit của lượt đã bỏ qua theo tình huống thực tế.
 
 Lượt chung từ tim chỉ vào ranh giới giữa các lượt, không cắt lời đang đọc. Tim delta và tổng tích lũy được phân biệt; tổng tích lũy lấy baseline đầu phiên. Mỗi mốc kích hoạt một lần, giữ phần dư và giới hạn số lượt chung chờ. Khi đổi phòng/phiên, dùng **Bắt đầu phiên mới** sau khi hoàn tất/bỏ qua lượt cũ; phiên cũ được lưu để đối soát. Follow/share hiện lời cảm ơn nhỏ, mặc định không tạo lượt tarot.
 
@@ -122,18 +124,15 @@ Key không nằm trong bundle, snapshot hay file xuất cấu hình. Không đ�
 
 ### Hỏi đáp sau trải bài
 
-Khi **Dùng AI cá nhân hóa** và **Cho phép hỏi tiếp sau tổng kết** được bật, backend có cấu hình AI, lượt xem cá nhân giữ đúng người vừa xem để hỏi thêm sau tổng kết. Lượt chung từ tim không mở hỏi đáp. Để gửi mỗi câu hỏi, dùng hai bình luận riêng:
+Khi **Dùng AI cá nhân hóa** và **Cho phép hỏi tiếp sau tổng kết** được bật, backend có cấu hình AI, lượt cá nhân giữ đúng người vừa xem để hỏi thêm. Lượt chung từ tim không mở hỏi đáp. Không bật hoặc chưa cấu hình AI thì ứng dụng vẫn đọc bài bằng nội dung biên soạn, nhưng không mở phần trả lời câu hỏi tiếp.
 
-1. Gửi bình luận chỉ có **`!hoi`**. Màn hình báo đang chờ câu hỏi của bạn.
-2. Ở bình luận tiếp theo, viết nội dung câu hỏi, ví dụ: **Tôi nên bắt đầu cuộc trò chuyện với người ấy thế nào?**
-
-Lệnh `!hoi` chỉ mở trạng thái chờ, chưa gọi AI hoặc dùng suất câu hỏi. Bình luận câu hỏi tiếp theo phải đến từ đúng tài khoản vừa xem và trước khi hết thời gian hỏi đáp. Muốn hỏi câu khác, lặp lại hai bước trên.
+Sau khi đọc xong tổng kết, khung giữa overlay hiện tên người xem, số câu còn lại và đồng hồ: **Bạn có 3 câu hỏi tiếp. Mỗi câu có 30 giây để gửi bình luận.** Người xem bình luận trực tiếp, ví dụ: **Tôi nên bắt đầu cuộc trò chuyện với người ấy thế nào?**
 
 - Chỉ cùng **ID tài khoản** vừa xem được hỏi; trùng nickname không đủ. Nhận tối đa **3 câu khác nhau**, mỗi câu 8–500 ký tự và không chứa liên kết. Câu gửi lặp không chiếm thêm suất.
 - AI dùng đúng ba lá, chiều, vị trí, lời giải và các câu đã trả lời của người đó; không rút thêm bài. Câu trả lời hướng tới 40–70 từ, rõ ràng, đi thẳng vào câu hỏi. Overlay giữ ba lá cũ và đọc câu trả lời hiện tại bằng nguồn âm thanh đang chọn.
-- Thời gian bắt đầu từ lúc mở hỏi đáp, mặc định **120 giây**. Trong **Nội dung & âm thanh → Hỏi đáp sau trải bài**, `followUpEnabled` bật/tắt chức năng và `followUpWindowSec` chỉnh từ **30 đến 120 giây**. Cấu hình mới áp dụng cho lượt tiếp theo. Đồng hồ tiếp tục chạy khi tạm dừng; đến hạn sẽ kết thúc hỏi đáp.
+- Ba câu được hỏi **lần lượt**, mỗi câu có **30 giây chờ nhập**. Nhận câu hỏi thì dừng đồng hồ trong lúc AI tạo và đọc câu trả lời. Đọc xong mới mở lại khung và bắt đầu 30 giây mới cho câu tiếp theo; không gửi dồn ba câu. Hết thời gian chờ nhập sẽ đóng phần hỏi đáp và tiếp tục hàng chờ sau pha hoàn tất. `followUpEnabled` bật/tắt phần này trong **Nội dung & âm thanh**.
 - Admin có thể nhập giúp câu hỏi của người đang xem, theo dõi ba ô trạng thái và bấm **Kết thúc hỏi đáp sớm**, kể cả khi đang tạm dừng. Đủ ba câu đã trả lời hoặc hết thời gian thì chuyển sang hoàn tất, rồi tiếp tục hàng chờ theo chế độ đang dùng.
-- Nếu AI lỗi, hiển thị lỗi và cho thử lại chính câu đó sau ít nhất 5 giây, tối đa **ba lần thử tính cả lần đầu**. Thử lại không dùng thêm suất câu hỏi và vẫn chịu hạn thời gian ban đầu; không tạo câu trả lời giả thay AI. Hỏi đáp không tiêu thụ thêm quà hoặc hoàn lại credit đã dùng.
+- Nếu AI lỗi, hiển thị lỗi và mở lại khung chờ 30 giây. Có thể thử lại chính câu đó sau ít nhất 5 giây, tối đa **ba lần thử tính cả lần đầu**; thử lại không dùng thêm suất câu hỏi. Không tạo câu trả lời giả thay AI. Hỏi đáp không tiêu thụ thêm quà hoặc hoàn lại credit đã dùng.
 
 ### Gemini
 
@@ -164,7 +163,7 @@ Audio client trong app gọi `POST /api/tts?mode=live` với `readingId`, `phase
 
 ## Giao diện và tài sản
 
-Trong **Sân khấu & giao diện**, đổi tên tiệm, hướng dẫn, màu, cỡ chữ, safe margins, giảm chuyển động và mức hiệu ứng 30/60 FPS. Safe guides chỉ hiện khi bật kiểm tra; stage luôn 1080 × 1920 rồi scale theo tỷ lệ.
+Trong **Sân khấu & giao diện**, đổi tên tiệm, hướng dẫn, màu, cỡ chữ, safe margins, giảm chuyển động và mức hiệu ứng 30/60 FPS. Safe guides chỉ hiện khi bật kiểm tra; stage luôn 1080 × 1920 rồi scale theo tỷ lệ. Hoạt ảnh mới tách bộ bài thành hai nửa, xào xen kẽ rồi gom lại; tiếp đó xòe thành vòng cung và lần lượt chọn ba lá. Chế độ giảm chuyển động vẫn giữ rõ các bước và ba lá đã chốt.
 
 Đặt tài sản riêng trong `public/custom/`, nhập URL như `/custom/nhan-vat.png`, `/custom/nen.webp`, `/custom/lung-bai.svg`. Nhân vật/nền hỗ trợ ảnh hoặc video MP4/WebM theo giao diện; video nên ngắn, nhẹ và tắt tiếng. Với từng lá, nhập JSON `cardId → đường dẫn`; danh sách ID và nội dung nằm ở `shared/cards.ts`. Dùng asset có quyền sử dụng. Ưu tiên file local để khi phát không phụ thuộc CDN; chạy lại `npm run build` sau khi thêm/thay file nếu dùng bản production.
 
@@ -172,14 +171,16 @@ Nhân vật PNG được tạo riêng bằng công cụ image_gen. Bộ bài m�
 
 ## Lưu trạng thái và phục hồi
 
-`data/tarot.sqlite` dùng SQLite WAL, lưu cấu hình, queue, credit, dấu sự kiện/combo, tim, lượt và ba lá đã chốt. Refresh/reconnect frontend chỉ đọc trạng thái. Sau restart backend, lượt đang dở được phục hồi ở trạng thái **tạm dừng**, cần admin tiếp tục; lượt hoàn tất không tự đọc lại. Tự động/chạy thủ công chỉnh được ở admin. Cấu hình nội dung, quy tắc và nhịp đọc của lượt đã chốt được giữ riêng; thay màu/cỡ chữ áp dụng khi lưu.
+`data/tarot.sqlite` dùng SQLite WAL, lưu cấu hình, queue, credit, dấu sự kiện/combo, tim, lượt và ba lá đã chốt. Refresh/reconnect frontend chỉ đọc trạng thái. Sau restart backend, lượt đang dở được phục hồi ở trạng thái **tạm dừng**, cần admin tiếp tục; hàng chờ và lời mời chọn chủ đề cũng chờ bấm **Bắt đầu**, rồi mới cấp lại 60 giây trả lời. Lượt hoàn tất không tự đọc lại. Tự động/chạy thủ công chỉnh được ở admin. Cấu hình nội dung, quy tắc và nhịp đọc của lượt đã chốt được giữ riêng; thay màu/cỡ chữ áp dụng khi lưu.
 
 **Xuất cấu hình** chỉ xuất các trường công khai, không kèm secret hoặc dữ liệu người xem. Để sao lưu cả phiên, dừng backend sạch rồi sao chép `data/` và file asset riêng; không xóa SQLite để xử lý lỗi thông thường. Cấu hình URL TikFinity ở `data/connection.json`. File `backend/.env` được giữ riêng và không đưa vào bản chia sẻ. Lịch sử phiên được lưu tại SQLite; API local `/api/history?mode=live` và `/api/history/{id}` phục vụ đối soát.
 
 ## Checklist trước khi phát
 
-- [ ] Mở đúng `/admin`, chọn LIVE; kiểm tra chế độ tham gia, mức xu, lệnh và mốc tim hiển thị thống nhất.
-- [ ] TikFinity nối và có thời điểm nhận sự kiện LIVE mới; comment hợp lệ tạo đúng tài khoản/câu hỏi.
+- [ ] Mở đúng `/admin`, chọn LIVE; kiểm tra tự động chạy, ưu tiên quà và mốc tim hiển thị thống nhất.
+- [ ] TikFinity nối và có thời điểm nhận sự kiện LIVE mới; bình luận tarot/tặng quà vào đúng tài khoản, khung giữa overlay gọi đúng tên.
+- [ ] Thử trả lời chỉ chủ đề rồi câu hỏi chi tiết; hết 60 giây bỏ qua người vắng nhưng giữ credit để đối soát.
+- [ ] Nếu bật AI, thử hỏi tiếp bằng bình luận thường: ba câu lần lượt, mỗi khung nhập đếm 30 giây, không đếm trong khi tạo/đọc câu trả lời.
 - [ ] Quà đơn và combo thực tế có đủ metadata; dãy combo không cộng lặp, credit thiếu dữ liệu được kiểm tra.
 - [ ] Overlay 1080 × 1920 không bị UI TikTok che phần tên, câu hỏi, lời giải hoặc bài; tắt safe guides.
 - [ ] Chạy một lượt đầy đủ trong đúng Browser Source/Window Capture, kiểm tra chữ Việt và các chiều bài.

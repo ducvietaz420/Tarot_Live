@@ -17,6 +17,12 @@ function setup() {
   let time = 1_000_000;
   const store = new Store(":memory:");
   const e = new Engine(store, { now: () => time, rng: () => 0 });
+  // These ledger/state-machine cases explicitly exercise the manual gift gate.
+  // The conversational flow and its automatic donor priority have separate tests.
+  e.action({ type: "config", config: {
+    autoRun: false, joinMode: "gift_question", priority: false,
+    durations: { shuffling: 3, dealing: 2 },
+  } }, "demo");
   const advance = (ms: number) => {
     time += ms;
     e.tick();
@@ -72,7 +78,7 @@ test("78 lá có ID/asset/nội dung khác nhau, xuôi/ngược và đủ 5 ch�
     assert.equal(Object.keys(c.topics).length, 5);
   }
 });
-test("Bộ phân tích chỉ nhận lệnh hoặc ý định rõ, không nhận chào/emoji", () => {
+test("Bộ phân tích nhận từ khóa cấu hình hoặc ý định rõ, không nhận chào/emoji", () => {
   assert.equal(parseQuestion("Chào chị ạ ❤️", DEFAULT_CONFIG), undefined);
   assert.equal(parseQuestion("🔥🔥🔥", DEFAULT_CONFIG), undefined);
   assert.equal(
@@ -82,7 +88,7 @@ test("Bộ phân tích chỉ nhận lệnh hoặc ý định rõ, không nhận 
   );
   assert.equal(
     parseQuestion(
-      "!tarot học hành | Làm sao học tập hiệu quả hơn?",
+      "tarot học hành | Làm sao học tập hiệu quả hơn?",
       DEFAULT_CONFIG,
     )?.topic,
     "Học hành",
@@ -94,7 +100,7 @@ test("Bộ phân tích chỉ nhận lệnh hoặc ý định rõ, không nhận 
     ),
   );
   assert.equal(
-    parseQuestion("!tarot công việc | https://example.com", DEFAULT_CONFIG),
+    parseQuestion("tarot công việc | https://example.com", DEFAULT_CONFIG),
     undefined,
   );
 });
@@ -263,7 +269,7 @@ test("10 người cùng nickname ghép đúng ID, avatar, câu hỏi, quà và c
   }
   e.close();
 });
-test("Trạng thái chờ câu hỏi / chờ điều kiện hiển thị rõ và quà không tự tạo lượt không câu hỏi", () => {
+test("Quà mở lời mời hỏi, vẫn đợi câu hỏi và điều kiện của chế độ quà bắt buộc", () => {
   const { e } = setup();
   e.ingest(chat("1"), "demo");
   assert.equal(e.sessions.demo.queue[0].status, "waiting_condition");
@@ -271,6 +277,8 @@ test("Trạng thái chờ câu hỏi / chờ điều kiện hiển thị rõ và
   assert.equal(e.sessions.demo.queue[1].status, "waiting_question");
   e.action({ type: "start" }, "demo");
   assert.equal(e.sessions.demo.active, null);
+  assert.equal(e.sessions.demo.intake?.itemId, e.sessions.demo.queue[1].id);
+  e.action({ type: "queue-skip", id: e.sessions.demo.queue[1].id }, "demo");
   e.ingest(gift("1"), "demo");
   e.action({ type: "start" }, "demo");
   assert.equal(e.snapshot("demo").session.active?.user.id, "1");
@@ -329,7 +337,8 @@ test("Thiếu giá trị hoặc định danh phải đối soát; không đoán 
   delete unreliable.id;
   e.ingest(unreliable, "demo");
   assert.ok(e.sessions.demo.credits[1].review);
-  assert.equal(e.sessions.demo.queue.length, 0);
+  assert.equal(e.sessions.demo.queue.length, 2);
+  assert.ok(e.sessions.demo.queue.every((item) => item.status === "waiting_question" && item.coins === 0 && item.creditIds.length === 0));
   e.close();
 });
 test("Quà vượt cửa sổ ghép được giữ để đối soát, không âm thầm dùng hoặc xóa", () => {

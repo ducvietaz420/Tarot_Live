@@ -102,7 +102,7 @@ async function run() {
   let child;
   let childOutput = "";
   let requestCount = 0;
-  const result = { checkedAt: new Date().toISOString(), ok: false, provider: "Gemini", model, isolatedPort: 54323, syntheticDataOnly: true, main: null, followUps: [] };
+  const result = { checkedAt: new Date().toISOString(), ok: false, provider: "Gemini", model, isolatedPort: 54323, syntheticDataOnly: true, naturalComments: true, inputWindowSec: 30, main: null, followUps: [] };
   const sanitize = (message) => (secret ? String(message).replaceAll(secret, "[redacted]") : String(message)).slice(0, 1200);
   const state = async () => {
     const response = await fetch(`${origin}/api/state?mode=demo`, { signal: AbortSignal.timeout(2000) });
@@ -156,15 +156,26 @@ async function run() {
     assert.equal(initial.capabilities.ai, true);
     console.log(`PORT_READY ${origin}`);
     await action({ type: "config", config: {
-      aiEnabled: true, aiModel: model, aiTimeoutSec: 30, followUpEnabled: true, followUpWindowSec: 120,
+      aiEnabled: true, aiModel: model, aiTimeoutSec: 30, followUpEnabled: true, followUpWindowSec: 30,
       joinMode: "free", cooldownSec: 0, autoRun: false, displayWords: 65, summaryWords: 50,
       ttsProvider: hold ? "browser" : "off", voice: "Microsoft HoaiMy Online (Natural) - Vietnamese (Vietnam)", speechRate: 1, speechVolume: 0.85,
       music: hold, musicVolume: 0.2, sfx: hold, sfxVolume: 0.7,
-      durations: { locking: 2, shuffling: 3, dealing: 2, card: 60, summary: 60, complete: 6 },
+      durations: { locking: 2, shuffling: 5, dealing: 5, card: 60, summary: 60, complete: 6 },
     } });
-    await chat(`!tarot công việc | ${syntheticQuestion}`, syntheticIdentity, "synthetic-main");
+    await chat("tarot", syntheticIdentity, "synthetic-join");
+    const invited = await action({ type: "start" });
+    assert.equal(invited.session.active, null);
+    assert.equal(invited.session.intake.itemId, invited.session.queue[0].id);
+    await chat("Tôi muốn xem về công việc", syntheticIdentity, "synthetic-topic");
+    const topicChosen = await state();
+    assert.equal(topicChosen.session.active, null, "A topic choice alone must wait for a specific question.");
+    assert.equal(topicChosen.session.queue[0].topicChosen, true);
+    assert.equal(topicChosen.session.queue[0].topic, "Công việc");
+    assert.equal(requestCount, 0, "Joining or choosing a topic must not call AI.");
     const startedAt = Date.now();
-    const started = await action({ type: "start" });
+    await chat(syntheticQuestion, syntheticIdentity, "synthetic-main-question");
+    const started = await state();
+    assert.ok(started.session.active, "A complete question must start the invited viewer's reading.");
     const readingId = started.session.active.id;
     const originalCards = started.session.active.cards;
     let ready;
@@ -191,21 +202,27 @@ async function run() {
     for (let index = 0; index < 10 && snapshot.session.active.phase !== "followup"; index++) snapshot = await action({ type: "next-phase" });
     assert.equal(snapshot.session.active.phase, "followup");
     assert.equal(snapshot.session.active.followUp.questions.length, 0);
-    await chat("!hoi", { userId: "codex-other-synthetic-viewer", nickname: "Người kiểm thử khác" }, "synthetic-wrong-viewer");
+    assert.equal(snapshot.session.active.followUp.awaitingQuestion, true);
+    assert.equal(snapshot.session.active.config.followUpWindowSec, 30);
+    await chat(questions[0], { userId: "codex-other-synthetic-viewer", nickname: "Người kiểm thử khác" }, "synthetic-wrong-viewer");
     assert.equal((await state()).session.active.followUp.questions.length, 0);
-    assert.ok(!(await state()).session.active.followUp.awaitingQuestion);
+    assert.equal((await state()).session.active.followUp.awaitingQuestion, true);
     await action({ type: "followup-ask", readingId, userId: "codex-other-synthetic-viewer", question: questions[0] }, 400);
     result.wrongViewerRejected = true;
     for (let index = 0; index < questions.length; index++) {
       const start = Date.now();
-      const callsBeforeTrigger = requestCount;
-      await chat("!hoi");
-      const waiting = (await state()).session.active.followUp;
+      const waitingSnapshot = await state();
+      const waiting = waitingSnapshot.session.active.followUp;
       assert.equal(waiting.awaitingQuestion, true);
       assert.equal(waiting.questions.length, index);
-      assert.equal(requestCount, callsBeforeTrigger, "Bare !hoi must not call AI.");
+      const inputRemaining = waiting.deadline - waitingSnapshot.serverTime;
+      assert.ok(inputRemaining > 25_000 && inputRemaining <= 30_000, "Each new question must receive its own 30-second input window.");
       await chat(questions[index], syntheticIdentity, index ? `synthetic-question-${index}` : undefined);
-      assert.equal((await state()).session.active.followUp.awaitingQuestion, false);
+      const acceptedQuestion = (await state()).session.active.followUp;
+      assert.equal(acceptedQuestion.awaitingQuestion, false);
+      assert.equal(acceptedQuestion.deadline, 0, "Generating and reading an answer must not consume the next input window.");
+      await chat("Tôi có thể gửi một câu khác khi đang chờ trả lời không?", syntheticIdentity, `synthetic-busy-${index}`);
+      assert.equal((await state()).session.active.followUp.questions.length, index + 1, "Only one question can be pending or playing at a time.");
       if (index === 0) {
         await chat(questions[index]);
         assert.equal((await state()).session.active.followUp.questions.length, 1);
@@ -238,7 +255,6 @@ async function run() {
       }
       if (index === 2) {
         const before = requestCount;
-        await chat("!hoi", syntheticIdentity, "synthetic-fourth-trigger");
         await chat("Tôi có thể hỏi thêm câu thứ tư được không?", syntheticIdentity, "synthetic-fourth");
         await action({ type: "followup-ask", readingId, userId: syntheticIdentity.userId, question: "Tôi có thể hỏi thêm câu thứ tư được không?" }, 400);
         assert.equal((await state()).session.active.followUp.questions.length, 3);

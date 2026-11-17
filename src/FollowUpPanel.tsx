@@ -28,8 +28,9 @@ export default function FollowUpPanel({
   const history = !["followup", "answer"].includes(reading.phase);
   const seconds = Math.max(0, Math.ceil((session.deadline - now) / 1000));
   const clock = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-  const closed = history || !!session.closedReason || seconds === 0;
-  const canAsk = !closed && !reading.paused && session.questions.length < 3;
+  const waiting = !!session.awaitingQuestion && session.deadline > 0;
+  const closed = history || !!session.closedReason || (waiting && seconds === 0);
+  const canAsk = !closed && !reading.paused && waiting && session.questions.length < 3;
   const perform = async (payload: Action) => {
     if (sending) return false;
     setSending(true);
@@ -54,17 +55,17 @@ export default function FollowUpPanel({
       </div>
       <div className="followup-intro">
         <strong>Dành cho {reading.user.name}</strong>
-        <span className={seconds <= 20 ? "followup-countdown is-ending" : "followup-countdown"}>
-          {closed ? "Đã kết thúc" : `${clock} còn lại`}
+        <span className={waiting && seconds <= 10 ? "followup-countdown is-ending" : "followup-countdown"}>
+          {closed ? "Đã kết thúc" : waiting ? `${clock} để đặt câu hỏi` : "Đang giải đáp"}
         </span>
         <p>
           {history
             ? "Các câu trả lời dưới đây dựa trên ba lá và lời giải của người này."
-            : session.awaitingQuestion && !closed
-              ? <>Đã nhận <code>!hoi</code>. Đang chờ {reading.user.name} viết câu hỏi
-                ở bình luận tiếp theo; còn {clock}.</>
-              : <>Người vừa xem gửi riêng <code>!hoi</code>, rồi viết câu hỏi ở bình luận tiếp theo.
-                AI dựa trên đúng trải bài này; nhận tối đa ba câu từ cùng tài khoản.</>}
+            : waiting && !closed
+              ? <>Đang chờ {reading.user.name} bình luận trực tiếp câu hỏi tiếp theo;
+                còn {clock}. Mỗi câu có 30 giây để hỏi.</>
+              : <>Tiệm đang trả lời dựa trên đúng ba lá vừa mở.
+                Khi đọc xong, người xem sẽ có 30 giây cho câu tiếp theo.</>}
         </p>
       </div>
       <ol className="followup-list">
@@ -118,7 +119,7 @@ export default function FollowUpPanel({
           disabled={!canAsk || sending}
         />
         <div className="followup-form-footer">
-          <small>{closed ? "Thời gian hỏi đáp đã kết thúc." : reading.paused ? "Tiếp tục lượt để nhận câu hỏi." : session.questions.length >= 3 ? "Đã nhận đủ ba câu hỏi." : "Từ 8 đến 500 ký tự."}</small>
+          <small>{closed ? "Thời gian hỏi đáp đã kết thúc." : reading.paused ? "Tiếp tục lượt để nhận câu hỏi." : session.questions.length >= 3 ? "Đã nhận đủ ba câu hỏi." : !waiting ? "Đọc xong câu trả lời sẽ mở 30 giây cho câu tiếp theo." : "Từ 8 đến 500 ký tự · Bình luận trực tiếp."}</small>
           <button className="primary" type="submit" disabled={!canAsk || sending || question.trim().length < 8}>
             {sending ? "Đang gửi…" : "Gửi câu hỏi"}
           </button>

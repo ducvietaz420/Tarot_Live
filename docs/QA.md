@@ -1,6 +1,16 @@
 # Kết quả kiểm tra bàn giao — 14/11/2026
 
-**Cập nhật mới nhất: bổ sung hỏi đáp sau trải bài, làm lời giải AI dễ hiểu hơn và chống tạo lại lượt từ câu lệnh lặp.** Kết quả từng lần kiểm tra nằm trong mục tương ứng. Các mục cũ được giữ làm lịch sử; số lượng kiểm thử, trạng thái server và kết quả API thật trong đó không phải kết quả của lần cập nhật mới.
+## Cập nhật luồng bình luận tự nhiên — 17/11/2026
+
+- `npm test`: **133/133 đạt**, không lỗi hoặc bỏ qua. Bao gồm parser tiếng Việt, mời chọn chủ đề rồi hỏi chi tiết, ưu tiên người tặng quà, đúng ID/phòng, chống lặp, nâng cấu hình cũ và khôi phục sau restart.
+- `npm run build`: TypeScript và Vite đạt. Hai script kiểm tra AI đã chuyển sang bình luận thường và được kiểm tra cú pháp; lần cập nhật này không chạy dịch vụ AI thật.
+- Hỏi tiếp nhận ba câu nối tiếp bằng bình luận thường, mỗi câu có 30 giây nhập. Đồng hồ dừng khi tạo/đọc đáp án và mở lại sau khi đọc xong. Kiểm thử xác nhận không đổi ba lá, không nhận câu từ tài khoản khác, không nhận dồn câu khi đang trả lời và bỏ kết quả AI cũ sau hủy.
+- Đã xem trực tiếp trên Edge ở backend thử riêng: lời mời đúng tên giữa overlay, khung hỏi chi tiết sau khi chỉ chọn chủ đề, hai nửa bộ bài xào xen kẽ, bộ bài xòe và khung hỏi tiếp có đồng hồ 30 giây. Backend thử dùng SQLite riêng và AI giả trỏ localhost, không thay dữ liệu LIVE hoặc gọi API bên ngoài.
+- Chưa thử lại quà/bình luận TikFinity hoặc âm thanh OBS trong phiên LIVE thật ở lần cập nhật này. Xem [luồng hiện tại](CONVERSATION-FLOW.md); các mục dưới đây là lịch sử phiên bản trước, gồm cả cú pháp lệnh và hạn hỏi đáp cũ.
+
+## Lịch sử trước luồng bình luận tự nhiên
+
+Kết quả từng lần kiểm tra nằm trong mục tương ứng. Các mục cũ được giữ làm lịch sử; số lượng kiểm thử, trạng thái server và kết quả API thật trong đó không phải kết quả của lần cập nhật mới.
 
 ## Hỏi đáp sau trải bài và bình luận lặp
 

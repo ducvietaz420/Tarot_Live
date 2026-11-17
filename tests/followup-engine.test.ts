@@ -120,63 +120,100 @@ function followUpChat(
   } }), "demo");
 }
 
-test("Hỏi đáp giữ đúng ba lá, xử lý ba câu nối tiếp và chỉ chuyển người sau câu cuối", async () => {
+test("Bình luận thường mở ba câu hỏi nối tiếp, giữ nguyên ba lá và lời giải", async () => {
   await fixture(async ({ engine: current, reading, requests, draws }) => {
     const engine = current();
     const cards = structuredClone(reading.cards);
     const content = structuredClone(reading.content);
     const initialDraws = draws();
+    const followUp = reading.followUp!;
+    assert.equal(followUp.awaitingQuestion, true);
+    assert.equal(followUp.deadline - followUp.openedAt, 30_000);
     engine.action({ type: "config", config: { autoRun: true } }, "demo");
-    questions.forEach((question) => ask(engine, reading, question));
-    assert.equal(reading.followUp!.questions.length, 3);
-    assert.equal(requests.length, 1, "Only the first answer may generate initially");
-    assert.deepEqual(reading.followUp!.questions.map((q) => q.status), ["generating", "queued", "queued"]);
-    assert.equal(engine.sessions.demo.active?.id, reading.id);
     for (let index = 0; index < 3; index++) {
+      assert.equal(followUp.awaitingQuestion, true);
+      followUpChat(engine, reading, questions[index]);
+      assert.equal(followUp.questions.length, index + 1);
+      assert.equal(followUp.awaitingQuestion, false);
+      assert.equal(followUp.deadline, 0, "Thời gian tạo và đọc đáp án không trừ thời gian đặt câu hỏi");
       assert.equal(requests.length, index + 1);
       assert.equal(requests[index].payload.question, questions[index]);
       assert.equal(requests[index].payload.previous.length, index);
       requests[index].resolve(response({ answer }));
       await nextTurn();
       assert.equal(reading.phase, "answer");
-      assert.equal(reading.followUp!.currentQuestionId, reading.followUp!.questions[index].id);
-      assert.equal(reading.followUp!.questions[index].status, "answered");
+      assert.equal(followUp.currentQuestionId, followUp.questions[index].id);
+      assert.equal(followUp.questions[index].status, "answered");
       assert.equal(engine.currentText("demo"), answer);
       assert.deepEqual(reading.cards, cards);
       assert.deepEqual(reading.content, content);
-      assert.equal(draws(), initialDraws, "Follow-up answers must not draw any cards");
+      assert.equal(draws(), initialDraws, "Hỏi tiếp không rút bài mới");
       engine.advance("demo");
       if (index < 2) {
         assert.equal(reading.phase, "followup");
+        assert.equal(followUp.deadline - engine.snapshot("demo").serverTime, 30_000);
         assert.equal(engine.sessions.demo.active?.id, reading.id);
       }
     }
     assert.equal(reading.phase, "complete");
-    assert.equal(reading.followUp!.closedReason, "answered");
+    assert.equal(followUp.closedReason, "answered");
+    assert.equal(followUp.awaitingQuestion, false);
     engine.advance("demo");
     assert.notEqual(engine.sessions.demo.active?.id, reading.id);
     assert.equal(engine.sessions.demo.queue.find((q) => q.id === reading.itemId)?.status, "completed");
   });
 });
 
-test("Sai người/sai lượt/câu thứ tư bị từ chối; gửi lặp không chiếm thêm suất", async () => {
+test("Sai người/sai lượt bị từ chối, câu đang xử lý không nhận thêm câu và không vượt quá ba câu", async () => {
   await fixture(async ({ engine: current, reading, requests }) => {
     const engine = current();
     assert.throws(() => engine.action({ type: "followup-ask", readingId: reading.id, userId: "someone-else", question: questions[0] }, "demo"));
     assert.throws(() => engine.action({ type: "followup-ask", readingId: "stale-reading", userId: reading.user.id, question: questions[0] }, "demo"));
-    ask(engine, reading, questions[0]);
-    ask(engine, reading, "  " + questions[0].toLocaleUpperCase("vi").normalize("NFD") + "  ");
-    assert.equal(reading.followUp!.questions.length, 1);
-    assert.equal(requests.length, 1);
-    ask(engine, reading, questions[1]);
-    ask(engine, reading, questions[2]);
-    assert.throws(() => ask(engine, reading, "Mình còn điều gì khác cần lưu ý nữa?"));
+    for (let index = 0; index < 3; index++) {
+      followUpChat(engine, reading, questions[index]);
+      followUpChat(engine, reading, "  " + questions[index].toLocaleUpperCase("vi").normalize("NFD") + "  ");
+      followUpChat(engine, reading, "Mình còn cần chuẩn bị điều gì khác nữa?");
+      assert.equal(reading.followUp!.questions.length, index + 1);
+      assert.equal(requests.length, index + 1);
+      requests[index].resolve(response({ answer }));
+      await nextTurn();
+      followUpChat(engine, reading, "Tôi muốn hỏi thêm ngay khi bạn đang trả lời?");
+      assert.equal(reading.followUp!.questions.length, index + 1);
+      engine.advance("demo");
+    }
+    assert.throws(() => ask(engine, reading, "Mình có thể hỏi thêm câu thứ tư được không?"));
     assert.equal(reading.followUp!.questions.length, 3);
-    assert.equal(requests.length, 1);
+    assert.equal(requests.length, 3);
   });
 });
 
-test("Lỗi AI không bịa câu trả lời, cho thử lại cùng câu mà không dùng thêm suất", async () => {
+test("Mỗi câu có đủ 30 giây, thời gian AI tạo hoặc đọc câu trả lời không làm hết lượt hỏi tiếp", async () => {
+  await fixture(async ({ engine: current, reading, requests, tick }) => {
+    const engine = current();
+    tick(29_999);
+    followUpChat(engine, reading, questions[0]);
+    assert.equal(requests.length, 1);
+    tick(60_000);
+    assert.equal(reading.phase, "followup");
+    assert.equal(reading.followUp!.closedReason, undefined);
+    assert.equal(reading.followUp!.deadline, 0);
+    requests[0].resolve(response({ answer }));
+    await nextTurn();
+    assert.equal(reading.phase, "answer");
+    assert.equal(reading.followUp!.deadline, 0);
+    engine.advance("demo");
+    const nextDeadline = reading.followUp!.deadline;
+    assert.equal(nextDeadline - engine.snapshot("demo").serverTime, 30_000);
+    tick(29_999);
+    assert.equal(reading.phase, "followup");
+    assert.equal(reading.followUp!.deadline, nextDeadline);
+    followUpChat(engine, reading, questions[1]);
+    assert.equal(requests.length, 2);
+    assert.equal(reading.followUp!.questions.length, 2);
+  });
+});
+
+test("Lỗi AI không bịa câu trả lời, mở lại 30 giây và thử lại cùng câu không dùng thêm suất", async () => {
   await fixture(async ({ engine: current, reading, requests, tick }) => {
     const engine = current();
     ask(engine, reading, questions[0]);
@@ -187,15 +224,18 @@ test("Lỗi AI không bịa câu trả lời, cho thử lại cùng câu mà kh�
     assert.match(question.error!, /hạn mức.*429/);
     assert.equal(question.answer, undefined);
     assert.equal(reading.phase, "followup");
+    assert.equal(reading.followUp!.awaitingQuestion, true);
+    assert.equal(reading.followUp!.deadline - engine.snapshot("demo").serverTime, 30_000);
     assert.ok(!JSON.stringify(engine.snapshot("demo")).includes(secret));
     assert.throws(() => engine.action({ type: "followup-retry", readingId: reading.id, id: question.id }, "demo"), /5 giây/);
     tick(4999);
     assert.throws(() => engine.action({ type: "followup-retry", readingId: reading.id, id: question.id }, "demo"), /5 giây/);
     tick(1);
-    engine.action({ type: "followup-retry", readingId: reading.id, id: question.id }, "demo");
+    followUpChat(engine, reading, questions[0], { msgId: "retry-same-question" });
     assert.equal(requests.length, 2);
     assert.equal(reading.followUp!.questions.length, 1);
     assert.equal(question.status, "generating");
+    assert.equal(reading.followUp!.deadline, 0);
     requests[1].resolve(response({ answer }));
     await nextTurn();
     assert.equal(question.status, "answered");
@@ -217,8 +257,7 @@ test("Thử lại câu hỏi lỗi tối đa ba lần và không cộng thêm c�
       await nextTurn();
       assert.equal(question.status, "failed");
       tick(5000);
-      if (attempt < 2)
-        engine.action({ type: "followup-retry", readingId: reading.id, id: question.id }, "demo");
+      if (attempt < 2) engine.action({ type: "followup-retry", readingId: reading.id, id: question.id }, "demo");
     }
     assert.equal(question.attempts, 3);
     assert.equal(reading.followUp!.questions.length, 1);
@@ -227,17 +266,18 @@ test("Thử lại câu hỏi lỗi tối đa ba lần và không cộng thêm c�
   });
 });
 
-test("Mốc 120 giây tuyệt đối vẫn đóng hỏi đáp khi tạm dừng", async () => {
+test("Không bình luận trước hạn 30 giây sẽ kết thúc hỏi đáp, kể cả khi tạm dừng", async () => {
   await fixture(async ({ engine: current, reading, tick }) => {
     const engine = current();
     const deadline = reading.followUp!.deadline;
     engine.action({ type: "pause" }, "demo");
-    tick(119_999);
+    tick(29_999);
     assert.equal(reading.phase, "followup");
     assert.equal(reading.followUp!.deadline, deadline);
     tick(1);
     assert.equal(reading.phase, "complete");
     assert.equal(reading.followUp!.closedReason, "timeout");
+    assert.equal(reading.followUp!.awaitingQuestion, false);
     assert.throws(() => ask(engine, reading, questions[0]));
   });
 });
@@ -250,7 +290,7 @@ test("Admin kết thúc hỏi đáp ngay cả khi lượt đang tạm dừng", a
     assert.equal(reading.paused, true);
     engine.action({ type: "followup-end", readingId: reading.id }, "demo");
     assert.equal(reading.phase, "complete");
-    assert.equal(reading.paused, false, "Nút kết thúc không để hàng chờ mắc ở trạng thái tạm dừng");
+    assert.equal(reading.paused, false);
     assert.equal(reading.followUp!.closedReason, "admin");
     requests[0].resolve(response({ answer }));
     await nextTurn();
@@ -270,7 +310,6 @@ test("Kết thúc sớm hoặc skip bỏ kết quả AI muộn, không đổi b�
       assert.equal(requests[0].signal.aborted, true);
       if (action === "followup-end") {
         assert.equal(reading.phase, "complete");
-        assert.equal(reading.followUp!.closedReason, "admin");
         engine.advance("demo");
       }
       engine.action({ type: "start" }, "demo");
@@ -314,7 +353,7 @@ test("Khởi động lại giữ lượt tạm dừng, chuyển câu đang tạo
   });
 });
 
-test("Hoàn tất xong gửi lại cùng lệnh không tạo lượt mới trong 2 phút, kể cả msgId mới", async () => {
+test("Hoàn tất xong gửi lại cùng câu hỏi không tạo lượt mới trong 2 phút, kể cả msgId mới", async () => {
   await fixture(async ({ engine: current, reading, tick }) => {
     const engine = current();
     engine.action({ type: "config", config: { cooldownSec: 0 } }, "demo");
@@ -323,10 +362,8 @@ test("Hoàn tất xong gửi lại cùng lệnh không tạo lượt mới trong
     assert.equal(engine.sessions.demo.active, null);
     const before = engine.sessions.demo.queue.filter((q) => q.user.id === reading.user.id).length;
     const frame = (msgId?: string) => normalizeEnvelope({ event: "chat", data: {
-      userId: reading.user.id,
-      nickname: reading.user.name,
-      msgId,
-      comment: `!tarot ${reading.topic} | ${reading.question}`,
+      userId: reading.user.id, nickname: reading.user.name, msgId,
+      comment: `tarot ${reading.topic} | ${reading.question}`,
     } });
     engine.ingest(frame(), "demo");
     engine.ingest(frame("new-id-same-question"), "demo");
@@ -337,161 +374,77 @@ test("Hoàn tất xong gửi lại cùng lệnh không tạo lượt mới trong
   });
 });
 
-test("Bình luận !hoi thuộc đúng ID mới vào hỏi đáp và frame thiếu msgId lặp không dùng thêm suất", async () => {
+test("Bình luận thường chỉ nhận đúng ID chủ bài và lọc frame thiếu msgId lặp", async () => {
   await fixture(async ({ engine: current, reading, requests }) => {
     const engine = current();
-    const chat = (userId: string, comment: string) => normalizeEnvelope({ event: "chat", data: { userId, nickname: "Cùng nickname", comment } });
-    engine.ingest(chat("another-id", "!hoi " + questions[0]), "demo");
+    followUpChat(engine, reading, questions[0], { userId: "another-id" });
     assert.equal(reading.followUp!.questions.length, 0);
     assert.equal(requests.length, 0);
-    const frame = chat(reading.user.id, "!hoi " + questions[0]);
-    engine.ingest(frame, "demo");
-    engine.ingest(frame, "demo");
+    followUpChat(engine, reading, questions[0]);
+    followUpChat(engine, reading, questions[0]);
     assert.equal(reading.followUp!.questions.length, 1);
     assert.equal(requests.length, 1);
     assert.equal(engine.sessions.demo.queue.filter((q) => q.user.id === reading.user.id).length, 1);
   });
 });
 
-test("Frame !hoi thiếu roomId dùng phòng hiện tại và không hỏi nhầm bài thuộc phòng trước", async () => {
+test("Bình luận thiếu roomId dùng phòng hiện tại, không nhận câu hỏi từ phòng khác", async () => {
   await fixture(async ({ engine: current, reading, requests }) => {
     const engine = current();
     const session = engine.sessions.demo;
     session.roomId = "room-original";
     session.queue.find((item) => item.id === reading.itemId)!.roomId = "room-original";
     engine.ingest(normalizeEnvelope({ event: "roomUser", data: { roomId: "room-next", viewerCount: 10 } }), "demo");
-    assert.equal(session.roomId, "room-next");
-    const chat = (roomId?: string) => normalizeEnvelope({ event: "chat", data: {
-      userId: reading.user.id, roomId, comment: "!hoi " + questions[0],
-    } });
-    engine.ingest(chat(), "demo");
+    followUpChat(engine, reading, questions[0]);
     assert.equal(reading.followUp!.questions.length, 0);
     assert.equal(requests.length, 0);
-    assert.ok(session.logs.some((entry) => entry.event === "followup" && entry.detail.includes("phòng")));
-    engine.ingest(chat("room-original"), "demo");
+    followUpChat(engine, reading, questions[0], { roomId: "room-original" });
     assert.equal(reading.followUp!.questions.length, 1);
     assert.equal(requests.length, 1);
   });
 });
 
-test("Ba lượt gửi riêng !hoi rồi nội dung hoạt động cả khi thiếu msgId và các câu trả lời còn đang chờ", async () => {
+test("Tạm dừng và bình luận không hợp lệ không mất suất hỏi hay gia hạn bộ đếm", async () => {
   await fixture(async ({ engine: current, reading, requests }) => {
     const engine = current();
     const followUp = reading.followUp!;
     const deadline = followUp.deadline;
-    const cards = structuredClone(reading.cards);
-    const content = structuredClone(reading.content);
-    for (let index = 0; index < 3; index++) {
-      const beforeRequests = requests.length;
-      followUpChat(engine, reading, "!hoi");
-      assert.equal(followUp.awaitingQuestion, true);
-      followUpChat(engine, reading, "!hoi");
-      assert.equal(followUp.awaitingQuestion, true, "Trigger lặp chỉ giữ trạng thái chờ nội dung");
-      assert.equal(followUp.questions.length, index);
-      assert.equal(requests.length, beforeRequests, "Chỉ gửi !hoi chưa được gọi AI");
-      assert.equal(followUp.deadline, deadline, "Lệnh lặp không gia hạn hai phút");
-      followUpChat(engine, reading, questions[index]);
-      assert.equal(followUp.awaitingQuestion, false);
-      assert.equal(followUp.questions.length, index + 1);
-      assert.equal(requests.length, 1, "Câu tiếp theo phải chờ câu đang tạo/đọc");
-    }
-    assert.deepEqual(followUp.questions.map((question) => question.status), ["generating", "queued", "queued"]);
-    followUpChat(engine, reading, "!hoi");
-    assert.equal(followUp.awaitingQuestion, false, "Đủ ba câu thì không chờ câu thứ tư");
-    followUpChat(engine, reading, "Tôi có thể hỏi thêm một câu nữa không?");
-    assert.equal(followUp.questions.length, 3);
-    for (let index = 0; index < 3; index++) {
-      assert.equal(requests[index].payload.question, questions[index]);
-      requests[index].resolve(response({ answer }));
-      await nextTurn();
-      assert.equal(reading.phase, "answer");
-      assert.equal(engine.currentText("demo"), answer);
-      engine.advance("demo");
-    }
-    assert.equal(reading.phase, "complete");
-    assert.equal(followUp.closedReason, "answered");
-    assert.equal(followUp.awaitingQuestion, false);
-    assert.deepEqual(reading.cards, cards);
-    assert.deepEqual(reading.content, content);
-    followUpChat(engine, reading, "!hoi");
-    assert.equal(followUp.awaitingQuestion, false, "Lệnh sau khi đóng không được mở lại hỏi đáp");
-    assert.equal(requests.length, 3);
-  });
-});
-
-test("Chờ nội dung sau !hoi không bắt nhầm người, giữ chờ sau câu lỗi và chỉ nhận khi đã tiếp tục", async () => {
-  await fixture(async ({ engine: current, reading, requests }) => {
-    const engine = current();
-    const followUp = reading.followUp!;
     engine.action({ type: "pause" }, "demo");
-    followUpChat(engine, reading, "!hoi");
-    assert.ok(!followUp.awaitingQuestion);
+    followUpChat(engine, reading, questions[0]);
+    assert.equal(followUp.questions.length, 0);
     assert.equal(requests.length, 0);
     engine.action({ type: "resume" }, "demo");
-    followUpChat(engine, reading, "!hoi", { userId: "another-viewer" });
-    assert.ok(!followUp.awaitingQuestion, "Người khác không được mở trạng thái chờ cho chủ bài");
-    followUpChat(engine, reading, "!hoi");
-    assert.equal(followUp.awaitingQuestion, true);
     followUpChat(engine, reading, questions[0], { userId: "another-viewer" });
     engine.ingest(normalizeEnvelope({ event: "chat", data: { nickname: reading.user.name, comment: questions[0] } }), "demo");
-    for (const comment of ["ngắn", "https://example.com/cau-hoi", "www.example.com/cau-hoi", "1234567890", "!khac câu lệnh khác"]) {
+    for (const comment of ["ngắn", "https://example.com/cau-hoi", "www.example.com/cau-hoi", "1234567890", "!hoi", "!hoi Tôi nên làm gì tiếp theo?", "!khac câu lệnh khác"]) {
       followUpChat(engine, reading, comment);
-      assert.equal(followUp.awaitingQuestion, true, `Không được mất trạng thái chờ vì: ${comment}`);
+      assert.equal(followUp.awaitingQuestion, true, `Câu không hợp lệ vẫn giữ khung hỏi: ${comment}`);
+      assert.equal(followUp.deadline, deadline);
       assert.equal(followUp.questions.length, 0);
       assert.equal(requests.length, 0);
     }
-    followUpChat(engine, reading, questions[0]);
-    assert.equal(followUp.awaitingQuestion, false);
-    assert.equal(followUp.questions.length, 1);
-    assert.equal(requests.length, 1);
-    assert.equal(requests[0].payload.question, questions[0]);
-  });
-});
-
-test("Cả lệnh !hoi và bình luận nội dung đều theo đúng phòng, gồm frame thiếu roomId", async () => {
-  await fixture(async ({ engine: current, reading, requests }) => {
-    const engine = current();
-    const session = engine.sessions.demo;
-    const followUp = reading.followUp!;
-    session.roomId = "room-original";
-    session.queue.find((item) => item.id === reading.itemId)!.roomId = "room-original";
-    followUpChat(engine, reading, "!hoi", { roomId: "room-next" });
-    followUpChat(engine, reading, "!hoi");
-    assert.ok(!followUp.awaitingQuestion);
-    followUpChat(engine, reading, "!hoi", { roomId: "room-original" });
-    assert.equal(followUp.awaitingQuestion, true);
-    followUpChat(engine, reading, questions[0], { roomId: "room-next" });
-    assert.equal(followUp.awaitingQuestion, true);
-    followUpChat(engine, reading, questions[1]);
-    assert.equal(session.roomId, "room-next");
-    assert.equal(followUp.awaitingQuestion, true);
-    assert.equal(followUp.questions.length, 0);
-    assert.equal(requests.length, 0);
-    followUpChat(engine, reading, questions[0], { roomId: "room-original" });
+    followUpChat(engine, reading, questions[0], { msgId: "after-resume-valid" });
     assert.equal(followUp.awaitingQuestion, false);
     assert.equal(followUp.questions.length, 1);
     assert.equal(requests.length, 1);
   });
 });
 
-test("Kết thúc hoặc hết hạn xóa trạng thái chờ nội dung; lệnh !hoi lặp không kéo dài cửa sổ", async () => {
+test("Kết thúc hoặc hết hạn xóa khung chờ, bình luận tiếp không mở lại phần hỏi đáp", async () => {
   for (const reason of ["admin", "timeout"] as const) {
     await fixture(async ({ engine: current, reading, requests, tick }) => {
       const engine = current();
       const followUp = reading.followUp!;
       const deadline = followUp.deadline;
-      followUpChat(engine, reading, "!hoi");
-      assert.equal(followUp.awaitingQuestion, true);
       tick(1000);
-      followUpChat(engine, reading, " !hỏi ");
+      followUpChat(engine, reading, "!hoi");
       assert.equal(followUp.deadline, deadline);
       assert.equal(followUp.questions.length, 0);
       assert.equal(requests.length, 0);
       if (reason === "admin") engine.action({ type: "followup-end", readingId: reading.id }, "demo");
-      else tick(119000);
+      else tick(29_000);
       assert.equal(followUp.closedReason, reason);
       assert.equal(followUp.awaitingQuestion, false);
-      followUpChat(engine, reading, "!hoi");
       followUpChat(engine, reading, questions[0]);
       assert.equal(followUp.awaitingQuestion, false);
       assert.equal(followUp.questions.length, 0);
