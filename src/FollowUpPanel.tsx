@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import type { Action, Reading } from "../shared/types";
+import { deriveFollowUpState } from "../shared/followup";
 
 const labels = {
   queued: "Đang chờ",
@@ -25,12 +26,19 @@ export default function FollowUpPanel({
   }, [reading.id]);
   const session = reading.followUp;
   if (!session) return null;
-  const history = !["followup", "answer"].includes(reading.phase);
-  const seconds = Math.max(0, Math.ceil((session.deadline - now) / 1000));
+  const view = deriveFollowUpState(reading, now);
+  const { history, seconds, waiting, closed, canAsk } = view;
   const clock = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-  const waiting = !!session.awaitingQuestion && session.deadline > 0;
-  const closed = history || !!session.closedReason || (waiting && seconds === 0);
-  const canAsk = !closed && !reading.paused && waiting && session.questions.length < 3;
+  const stateLabels = {
+    history: "Đã hoàn tất",
+    closed: "Đã kết thúc",
+    paused: "Đang tạm dừng",
+    waiting: `${clock} để đặt câu hỏi`,
+    generating: "AI đang chuẩn bị câu trả lời",
+    answering: "Đang đọc câu trả lời",
+    limit: "Đã nhận đủ ba câu hỏi",
+    recovering: "Đang đồng bộ khung hỏi tiếp",
+  };
   const perform = async (payload: Action) => {
     if (sending) return false;
     setSending(true);
@@ -40,12 +48,13 @@ export default function FollowUpPanel({
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!canAsk || sending || question.trim().length < 8) return;
+    const submittedQuestion = question;
     if (await perform({
       type: "followup-ask",
       readingId: reading.id,
       userId: reading.user.id,
       question: question.trim(),
-    })) setQuestion("");
+    })) setQuestion((draft) => draft === submittedQuestion ? "" : draft);
   };
   return (
     <section className="panel followup-panel" aria-label="Hỏi đáp sau trải bài">
@@ -56,16 +65,29 @@ export default function FollowUpPanel({
       <div className="followup-intro">
         <strong>Dành cho {reading.user.name}</strong>
         <span className={waiting && seconds <= 10 ? "followup-countdown is-ending" : "followup-countdown"}>
-          {closed ? "Đã kết thúc" : waiting ? `${clock} để đặt câu hỏi` : "Đang giải đáp"}
+          {stateLabels[view.status]}
         </span>
         <p>
-          {history
+          {view.status === "history"
             ? "Các câu trả lời dưới đây dựa trên ba lá và lời giải của người này."
-            : waiting && !closed
+            : view.status === "closed"
+              ? "Phần hỏi đáp của lượt này đã kết thúc. Câu hỏi đã gửi và các câu trả lời vẫn được giữ bên dưới."
+            : view.status === "paused"
+              ? <>Lượt đang tạm dừng. Bạn vẫn có thể soạn câu hỏi bên dưới;
+                bấm Tiếp tục ở bảng điều hành để gửi khi khung hỏi mở lại.
+                {waiting && <> Còn {clock} trong thời gian nhận câu hỏi.</>}</>
+            : view.status === "waiting"
               ? <>Đang chờ {reading.user.name} bình luận trực tiếp câu hỏi tiếp theo;
                 còn {clock}. Mỗi câu có 30 giây để hỏi.</>
-              : <>Tiệm đang trả lời dựa trên đúng ba lá vừa mở.
-                Khi đọc xong, người xem sẽ có 30 giây cho câu tiếp theo.</>}
+            : view.status === "generating"
+              ? <>Đã nhận câu hỏi. AI đang chuẩn bị câu trả lời từ đúng ba lá vừa mở.
+                Bạn có thể soạn trước câu kế tiếp; gửi khi khung hỏi mở lại.</>
+            : view.status === "answering"
+              ? <>Tiệm đang đọc câu trả lời. Bạn có thể soạn trước;
+                sau khi đọc xong sẽ mở 30 giây để gửi câu tiếp theo.</>
+            : view.status === "limit"
+              ? "Đã nhận đủ ba câu hỏi. Có thể thử lại câu trả lời bị lỗi hoặc kết thúc hỏi đáp."
+              : "Khung hỏi tiếp đang đồng bộ. Bạn có thể soạn trước câu hỏi; gửi khi đồng hồ nhận câu hỏi xuất hiện."}
         </p>
       </div>
       <ol className="followup-list">
@@ -91,7 +113,7 @@ export default function FollowUpPanel({
             {item.status === "failed" && (
               <button
                 type="button"
-                disabled={closed || reading.paused || sending || retrySeconds > 0 || (item.attempts || 0) >= 3}
+                disabled={!view.canRetry || sending || retrySeconds > 0 || (item.attempts || 0) >= 3}
                 onClick={() => void perform({
                   type: "followup-retry",
                   readingId: reading.id,
@@ -116,10 +138,11 @@ export default function FollowUpPanel({
           placeholder="Ví dụ: Tôi nên làm gì trước trong tình huống này?"
           maxLength={500}
           rows={3}
-          disabled={!canAsk || sending}
+          disabled={!view.canDraft}
+          aria-describedby={`followup-help-${reading.id}`}
         />
         <div className="followup-form-footer">
-          <small>{closed ? "Thời gian hỏi đáp đã kết thúc." : reading.paused ? "Tiếp tục lượt để nhận câu hỏi." : session.questions.length >= 3 ? "Đã nhận đủ ba câu hỏi." : !waiting ? "Đọc xong câu trả lời sẽ mở 30 giây cho câu tiếp theo." : "Từ 8 đến 500 ký tự · Bình luận trực tiếp."}</small>
+          <small id={`followup-help-${reading.id}`}>{closed ? "Thời gian hỏi đáp đã kết thúc." : reading.paused ? "Có thể soạn trước. Tiếp tục lượt để gửi khi khung hỏi mở." : session.questions.length >= 3 ? "Đã nhận đủ ba câu hỏi." : !waiting ? "Có thể soạn trước; gửi khi đồng hồ 30 giây xuất hiện." : "Từ 8 đến 500 ký tự · Bình luận trực tiếp."}</small>
           <button className="primary" type="submit" disabled={!canAsk || sending || question.trim().length < 8}>
             {sending ? "Đang gửi…" : "Gửi câu hỏi"}
           </button>

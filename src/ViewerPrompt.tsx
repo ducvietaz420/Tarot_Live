@@ -37,6 +37,9 @@ export default function ViewerPrompt({
             ))}</div>
           )}
           <div className="prompt-footer"><i />Còn {seconds} giây · {chosenTopic ? "Bình luận câu hỏi cụ thể, tiệm đang lắng nghe." : "Bình luận chủ đề và điều bạn muốn biết nhé."}<i /></div>
+          <div className="prompt-timer-track" role="progressbar" aria-label="Thời gian chờ câu hỏi" aria-valuemin={0} aria-valuemax={60} aria-valuenow={Math.max(0, Math.min(60, seconds))}>
+            <i style={{ width: `${Math.max(0, Math.min(100, seconds / 60 * 100))}%` }} />
+          </div>
         </>
       ) : (
         <>
@@ -45,7 +48,9 @@ export default function ViewerPrompt({
             <strong>{String(seconds).padStart(2, "0")}<small>giây</small></strong>
             <div><span>ĐANG CHỜ CÂU {questionNumber} CỦA {name}</span><b>Viết thẳng câu hỏi trong bình luận nhé.</b></div>
           </div>
-          <div className="prompt-timer-track"><i style={{ width: `${Math.max(0, Math.min(100, seconds / 30 * 100))}%` }} /></div>
+          <div className="prompt-timer-track" role="progressbar" aria-label="Thời gian đặt câu hỏi tiếp" aria-valuemin={0} aria-valuemax={30} aria-valuenow={Math.max(0, Math.min(30, seconds))}>
+            <i style={{ width: `${Math.max(0, Math.min(100, seconds / 30 * 100))}%` }} />
+          </div>
         </>
       )}
     </div>

@@ -371,6 +371,7 @@ export class Engine {
   private rng: (max: number) => number;
   private store: Store;
   private restartHold = new Set<Mode>();
+  private recoveredFollowUpInput = new Set<string>();
   constructor(
     store = new Store(":memory:"),
     options: { now?: () => number; rng?: (max: number) => number } = {},
@@ -404,6 +405,18 @@ export class Engine {
       if (a) {
         for (const question of a.followUp?.questions || []) {
           if (question.status === "generating") question.status = "queued";
+        }
+        if (a.phase === "followup" && a.followUp && !a.followUp.closedReason &&
+          (!a.followUp.awaitingQuestion || a.followUp.deadline <= 0) &&
+          !a.followUp.questions.some((question) => ["queued", "generating"].includes(question.status)) &&
+          (a.followUp.questions.length < 3 || a.followUp.questions.some((question) => question.status === "failed"))) {
+          // Older saved sessions had no awaiting flag. Reopen their idle input
+          // after an explicit resume rather than treating them as a running job.
+          a.followUp.awaitingQuestion = true;
+          a.followUp.deadline = 0;
+          a.phaseDuration = 30_000;
+          a.remainingMs = 30_000;
+          this.recoveredFollowUpInput.add(a.id);
         }
         if (a.phase === "followup" && a.followUp) a.followUp.currentQuestionId = undefined;
         a.remainingMs = Math.max(
@@ -1617,6 +1630,10 @@ export class Engine {
       case "resume":
         this.restartHold.delete(mode);
         if (a && a.paused) {
+          if (a.followUp && this.recoveredFollowUpInput.delete(a.id)) {
+            a.followUp.deadline = now + 30_000;
+            a.remainingMs = 30_000;
+          }
           a.paused = false;
           a.phaseStartedAt = now;
           a.phaseDuration = Math.max(

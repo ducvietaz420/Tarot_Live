@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { setImmediate as nextTurn } from "node:timers/promises";
 import { Engine } from "../server/engine.ts";
-import { Store } from "../server/store.ts";
+import { Store, type SavedState } from "../server/store.ts";
 import { normalizeEnvelope } from "../server/tikfinity.ts";
 import type { Reading } from "../shared/types.ts";
 import { aiReadingContent } from "./fixtures/ai-reading.ts";
@@ -31,7 +31,7 @@ async function fixture(run: (context: {
   requests: Request[];
   tick: (ms: number) => void;
   draws: () => number;
-  restart: () => Engine;
+  restart: (update?: (saved: SavedState) => void) => Engine;
 }) => Promise<void>) {
   const previousFetch = globalThis.fetch;
   const names = ["AI_API_KEY", "AI_BASE_URL", "AI_MODEL"] as const;
@@ -77,8 +77,9 @@ async function fixture(run: (context: {
       requests,
       tick: (ms) => { now += ms; engine.tick(); },
       draws: () => draws,
-      restart: () => {
+      restart: (update) => {
         const saved = store.load()!;
+        update?.(saved);
         engine.close();
         store = new Store(":memory:");
         store.save(saved);
@@ -340,9 +341,15 @@ test("Khởi động lại giữ lượt tạm dừng, chuyển câu đang tạo
     assert.deepEqual(active.cards, cards);
     assert.equal(active.followUp!.questions[0].id, questionId);
     assert.equal(active.followUp!.questions[0].status, "queued");
+    assert.equal(active.followUp!.awaitingQuestion, false);
+    assert.equal(active.followUp!.deadline, 0);
     assert.equal(requests.length, 1);
     restored.action({ type: "resume" }, "demo");
     assert.equal(requests.length, 2);
+    followUpChat(restored, active, questions[1]);
+    assert.equal(active.followUp!.questions.length, 1, "Khôi phục câu đang tạo không được mở khung nhận câu mới");
+    assert.equal(active.followUp!.awaitingQuestion, false);
+    assert.equal(active.followUp!.deadline, 0);
     requests[0].resolve(response({ answer }));
     await nextTurn();
     assert.equal(active.followUp!.questions[0].status, "generating");
@@ -350,6 +357,88 @@ test("Khởi động lại giữ lượt tạm dừng, chuyển câu đang tạo
     await nextTurn();
     assert.equal(active.followUp!.questions[0].status, "answered");
     assert.equal(restored.currentText("demo"), answer);
+  });
+});
+
+test("Phiên hỏi đáp cũ thiếu trạng thái chờ được khôi phục và nhận bình luận hoặc câu nhập từ admin", async () => {
+  for (const legacy of [
+    { awaitingQuestion: undefined, deadline: 1_120_000, via: "comment" },
+    { awaitingQuestion: false, deadline: 0, via: "admin" },
+    { awaitingQuestion: true, deadline: 0, via: "comment", restartTwice: true },
+  ] as const) {
+    await fixture(async ({ reading, requests, restart, tick }) => {
+      const cards = structuredClone(reading.cards);
+      let restored = restart((saved) => {
+        const followUp = saved.sessions.demo.active!.followUp!;
+        followUp.awaitingQuestion = legacy.awaitingQuestion;
+        followUp.deadline = legacy.deadline;
+      });
+      if ("restartTwice" in legacy && legacy.restartTwice) restored = restart();
+      const active = restored.sessions.demo.active!;
+      assert.equal(active.paused, true);
+      assert.equal(active.phase, "followup");
+      assert.equal(active.followUp!.questions.length, 0);
+      assert.equal(requests.length, 0, "Chỉ khôi phục trạng thái không tự gọi AI");
+      tick(150_000);
+      assert.equal(active.phase, "followup", "Phiên cũ được sửa phải chờ quản trị tiếp tục trước khi tính 30 giây mới");
+      assert.equal(active.paused, true);
+      restored.action({ type: "resume" }, "demo");
+      assert.equal(active.followUp!.awaitingQuestion, true);
+      assert.equal(active.followUp!.deadline - restored.snapshot("demo").serverTime, 30_000);
+      if (legacy.via === "comment") followUpChat(restored, active, questions[0]);
+      else ask(restored, active, questions[0]);
+      assert.equal(active.followUp!.questions.length, 1);
+      assert.equal(requests.length, 1);
+      assert.equal(requests[0].payload.question, questions[0]);
+      assert.equal(active.followUp!.awaitingQuestion, false);
+      assert.equal(active.followUp!.deadline, 0);
+      assert.deepEqual(active.cards, cards);
+    });
+  }
+});
+
+test("Khôi phục lúc đọc đáp án vẫn giữ trạng thái bận và chỉ mở câu kế tiếp sau khi đọc xong", async () => {
+  await fixture(async ({ engine: current, reading, requests, restart }) => {
+    ask(current(), reading, questions[0]);
+    requests[0].resolve(response({ answer }));
+    await nextTurn();
+    assert.equal(reading.phase, "answer");
+    const restored = restart();
+    const active = restored.sessions.demo.active!;
+    assert.equal(active.paused, true);
+    assert.equal(active.phase, "answer");
+    assert.equal(active.followUp!.awaitingQuestion, false);
+    assert.equal(active.followUp!.deadline, 0);
+    restored.action({ type: "resume" }, "demo");
+    followUpChat(restored, active, questions[1]);
+    assert.equal(active.followUp!.questions.length, 1);
+    assert.equal(requests.length, 1);
+    assert.equal(restored.currentText("demo"), answer);
+    restored.advance("demo");
+    assert.equal(active.phase, "followup");
+    assert.equal(active.followUp!.awaitingQuestion, true);
+    assert.equal(active.followUp!.deadline - restored.snapshot("demo").serverTime, 30_000);
+  });
+});
+
+test("Khôi phục cửa sổ 30 giây hợp lệ đã hết hạn không được tự gia hạn", async () => {
+  await fixture(async ({ restart, requests }) => {
+    const expiredDeadline = 999_999;
+    const restored = restart((saved) => {
+      const followUp = saved.sessions.demo.active!.followUp!;
+      followUp.awaitingQuestion = true;
+      followUp.deadline = expiredDeadline;
+      followUp.openedAt = expiredDeadline - 30_000;
+    });
+    const active = restored.sessions.demo.active!;
+    assert.equal(active.paused, true);
+    assert.equal(active.followUp!.deadline, expiredDeadline);
+    restored.action({ type: "resume" }, "demo");
+    restored.tick();
+    assert.equal(active.phase, "complete");
+    assert.equal(active.followUp!.closedReason, "timeout");
+    assert.equal(active.followUp!.awaitingQuestion, false);
+    assert.equal(requests.length, 0);
   });
 });
 

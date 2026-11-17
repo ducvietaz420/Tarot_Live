@@ -17,6 +17,7 @@ import { ReadingText } from "./ReadingText";
 import FollowUpPanel from "./FollowUpPanel";
 import DeckRitual from "./DeckRitual";
 import ViewerPrompt from "./ViewerPrompt";
+import { deriveFollowUpState } from "../shared/followup";
 
 const number = (n: number) => new Intl.NumberFormat("vi-VN").format(n);
 const time = (n?: number) =>
@@ -239,9 +240,10 @@ function Stage({
     (question) => question.id === followUp.currentQuestionId,
   );
   const isFollowUp = phase === "followup" || phase === "answer";
-  const followUpSeconds = Math.max(0, Math.ceil(((followUp?.deadline || now) - now) / 1000));
+  const followUpView = r ? deriveFollowUpState(r, now) : undefined;
+  const followUpSeconds = followUpView?.seconds || 0;
   const followUpClock = `${Math.floor(followUpSeconds / 60)}:${String(followUpSeconds % 60).padStart(2, "0")}`;
-  const awaitingFollowUp = !!followUp?.awaitingQuestion && !followUp.closedReason && followUpSeconds > 0;
+  const awaitingFollowUp = !!followUpView?.waiting;
   const elapsed = r
     ? Math.max(
         0,

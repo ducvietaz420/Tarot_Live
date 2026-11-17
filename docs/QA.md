@@ -2,7 +2,9 @@
 
 ## Cập nhật luồng bình luận tự nhiên — 17/11/2026
 
-- `npm test`: **133/133 đạt**, không lỗi hoặc bỏ qua. Bao gồm parser tiếng Việt, mời chọn chủ đề rồi hỏi chi tiết, ưu tiên người tặng quà, đúng ID/phòng, chống lặp, nâng cấu hình cũ và khôi phục sau restart.
+Bổ sung sửa lỗi admin DEMO không nhập được câu hỏi khi phiên cũ thiếu trạng thái chờ: phục hồi cửa sổ nhập sau khi tiếp tục, nhận biết đúng đang tạo/đọc đáp án và cho soạn nháp trước khi gửi. Đã thử nhập trực tiếp trong trình duyệt; khung chờ overlay có viền sáng hơn và thanh tiến độ đếm ngược rõ hơn.
+
+- `npm test`: **149/149 đạt**, không lỗi hoặc bỏ qua. Bao gồm parser tiếng Việt, mời chọn chủ đề rồi hỏi chi tiết, ưu tiên người tặng quà, đúng ID/phòng, chống lặp, nâng cấu hình cũ và khôi phục sau restart.
 - `npm run build`: TypeScript và Vite đạt. Hai script kiểm tra AI đã chuyển sang bình luận thường và được kiểm tra cú pháp; lần cập nhật này không chạy dịch vụ AI thật.
 - Hỏi tiếp nhận ba câu nối tiếp bằng bình luận thường, mỗi câu có 30 giây nhập. Đồng hồ dừng khi tạo/đọc đáp án và mở lại sau khi đọc xong. Kiểm thử xác nhận không đổi ba lá, không nhận câu từ tài khoản khác, không nhận dồn câu khi đang trả lời và bỏ kết quả AI cũ sau hủy.
 - Đã xem trực tiếp trên Edge ở backend thử riêng: lời mời đúng tên giữa overlay, khung hỏi chi tiết sau khi chỉ chọn chủ đề, hai nửa bộ bài xào xen kẽ, bộ bài xòe và khung hỏi tiếp có đồng hồ 30 giây. Backend thử dùng SQLite riêng và AI giả trỏ localhost, không thay dữ liệu LIVE hoặc gọi API bên ngoài.
