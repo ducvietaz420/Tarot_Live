@@ -270,6 +270,10 @@ const server = createServer(async (req, res) => {
       }
       const result = await task;
       const current = engine.sessions[mode].active;
+      if (engine.audioOwners[mode] !== clientId) {
+        send(res, 409, { error: "Tab này không còn sở hữu nguồn âm thanh." });
+        return;
+      }
       if (
         !current ||
         current.paused ||
@@ -368,7 +372,7 @@ wss.on("connection", (ws, req) => {
     try {
       const msg = JSON.parse(data.toString());
       if (msg.type === "audio-claim") {
-        engine.setAudioOwner(mode, id);
+        engine.setAudioOwner(mode, id, msg.transfer === true);
       } else if (
         msg.type === "audio-release" &&
         engine.audioOwners[mode] === id

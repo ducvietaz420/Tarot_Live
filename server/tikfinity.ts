@@ -160,7 +160,9 @@ export function normalizeEnvelope(input: unknown): NormalizedEvent {
   }
   if (!id)
     issues.push(
-      "Thiếu msgId; không thể chống phát lại hoàn toàn bằng ID sự kiện",
+      event === "chat"
+        ? "Thiếu msgId; chat có ID tài khoản ổn định được lọc lặp theo người, phòng và nội dung trong 5 giây; không bảo đảm chống phát lại bằng ID sự kiện"
+        : "Thiếu msgId; không thể chống phát lại hoàn toàn bằng ID sự kiện",
     );
   if (event === "chat") {
     result.comment = text(data.content ?? data.comment, 2000);

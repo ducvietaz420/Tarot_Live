@@ -1,0 +1,41 @@
+{
+  "checkedAt": "2026-11-14T12:44:37.986Z",
+  "ok": true,
+  "provider": "Gemini",
+  "model": "gemini-3.5-flash-lite",
+  "isolatedPort": 54323,
+  "envModelConfigured": false,
+  "disabled": {
+    "aiEnabled": false,
+    "source": "fallback",
+    "apiRequests": 0
+  },
+  "enabled": {
+    "aiEnabled": true,
+    "source": "ai",
+    "elapsedMs": 3076,
+    "apiRequests": 1,
+    "cardsUnchanged": true,
+    "cards": [
+      {
+        "cardId": "pentacles-10",
+        "position": 0,
+        "reversed": true,
+        "words": 65
+      },
+      {
+        "cardId": "the-high-priestess",
+        "position": 1,
+        "reversed": false,
+        "words": 61
+      },
+      {
+        "cardId": "wands-8",
+        "position": 2,
+        "reversed": false,
+        "words": 58
+      }
+    ],
+    "summaryWords": 36
+  }
+}

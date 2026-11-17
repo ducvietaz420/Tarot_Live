@@ -90,6 +90,25 @@ test("invalid data is reported and unsafe numeric IDs never assigned", () => {
   assert.equal(local.user?.avatar, "/assets/avatars/avatar-1.svg");
 });
 
+test("missing chat IDs explain the short fallback without promising gift replay protection", () => {
+  const chat = normalizeEnvelope({
+    event: "chat",
+    data: { userId: "one", comment: "!hoi Tôi nên chú ý điều gì?" },
+  });
+  assert.ok(chat.issues.some((issue) =>
+    issue.includes("Thiếu msgId") &&
+    issue.includes("ID tài khoản ổn định") &&
+    issue.includes("5 giây") &&
+    issue.includes("không bảo đảm chống phát lại bằng ID sự kiện"),
+  ));
+  const gift = normalizeEnvelope({
+    event: "gift",
+    data: { userId: "one", giftId: "rose" },
+  });
+  assert.ok(gift.issues.includes("Thiếu msgId; không thể chống phát lại hoàn toàn bằng ID sự kiện"));
+  assert.ok(gift.issues.every((issue) => !issue.includes("5 giây")));
+});
+
 test("gift metadata keeps cumulative counts, final flag, IDs and per-unit values", () => {
   const fixtures = [1, 2, 3, 3].map((repeatCount, index) =>
     normalizeEnvelope({

@@ -4,13 +4,6 @@ $projectRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 Set-Location -LiteralPath $projectRoot
 
 try {
-    $nodeCommand = Get-Command node.exe -ErrorAction Stop
-    $npmCommand = Get-Command npm.cmd -ErrorAction Stop
-    $nodeVersion = & $nodeCommand.Source --version
-    if ([int]($nodeVersion.TrimStart('v').Split('.')[0]) -lt 24) {
-        throw 'Ứng dụng cần Node.js 24 trở lên. Cài Node.js rồi mở lại START.cmd.'
-    }
-
     $taskPort = 3210
     if ($env:PORT -match '^\d+$') { $taskPort = [int]$env:PORT }
     $envFile = Join-Path $projectRoot 'backend\.env'
@@ -39,10 +32,13 @@ try {
     catch { throw ('Cổng ' + $taskPort + ' đang được sử dụng. Không dừng tiến trình đó. Đổi PORT trong backend/.env rồi thử lại.') }
     finally { $portProbe.Stop() }
 
+    . (Join-Path $PSScriptRoot 'SETUP-WINDOWS.ps1')
+    $runtime = Get-TarotNodeRuntime -ProjectRoot $projectRoot
+    $env:Path = (Split-Path -Parent $runtime.NodePath) + [IO.Path]::PathSeparator + $env:Path
+    Install-TarotDependencies -ProjectRoot $projectRoot -NpmPath $runtime.NpmPath
     $tsxCli = Join-Path $projectRoot 'node_modules\tsx\dist\cli.mjs'
-    if (-not (Test-Path -LiteralPath $tsxCli)) { throw 'Chưa có dependency. Mở terminal tại thư mục project, chạy npm install rồi mở lại START.cmd.' }
     Write-Host 'Đang kiểm tra TypeScript và dựng bản chạy local…'
-    & $npmCommand.Source run build
+    & $runtime.NpmPath run build
     if ($LASTEXITCODE -ne 0) { throw 'Build chưa thành công. Xem lỗi ở trên; ứng dụng chưa được khởi động.' }
 
     $logDir = Join-Path $projectRoot 'data'
@@ -50,7 +46,7 @@ try {
     $serverPath = Join-Path $projectRoot 'server\index.ts'
     $stdoutPath = Join-Path $logDir 'startup.stdout.log'
     $stderrPath = Join-Path $logDir 'startup.stderr.log'
-    $serverProcess = Start-Process -FilePath $nodeCommand.Source -ArgumentList @(('"' + $tsxCli + '"'), ('"' + $serverPath + '"'), '--production') -WorkingDirectory $projectRoot -WindowStyle Hidden -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -PassThru
+    $serverProcess = Start-Process -FilePath $runtime.NodePath -ArgumentList @(('"' + $tsxCli + '"'), ('"' + $serverPath + '"'), '--production') -WorkingDirectory $projectRoot -WindowStyle Hidden -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -PassThru
     $serverProcess.Id | Set-Content -LiteralPath (Join-Path $logDir 'launcher.pid') -Encoding ascii
     $ready = $false
     for ($attempt = 0; $attempt -lt 35; $attempt++) {

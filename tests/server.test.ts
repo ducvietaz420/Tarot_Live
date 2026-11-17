@@ -256,8 +256,15 @@ test(
     await delay(50);
     assert.equal((await state()).audioOwner, "test-demo-owner");
     assert.equal((await state("live")).audioOwner, null);
+    preview.socket.send(JSON.stringify({ type: "audio-claim", transfer: true }));
+    await until(() => preview.last?.audioOwner === "test-preview-only");
     demo1.socket.send(JSON.stringify({ type: "audio-release" }));
-    await until(() => demo1.last?.audioOwner === null);
+    live.socket.send(JSON.stringify({ type: "audio-claim", transfer: true }));
+    await delay(50);
+    assert.equal((await state()).audioOwner, "test-preview-only");
+    assert.equal((await state("live")).audioOwner, null);
+    preview.socket.send(JSON.stringify({ type: "audio-release" }));
+    await until(() => preview.last?.audioOwner === null);
     live.socket.send(JSON.stringify({ type: "audio-claim" }));
     await until(() => live.last?.audioOwner === "test-live-owner");
 
@@ -301,7 +308,12 @@ test(
       (
         await action({
           type: "config",
-          config: { ttsProvider: "http", durations: { card: 60 } },
+          config: {
+            ttsProvider: "http",
+            displayWords: 65,
+            summaryWords: 50,
+            durations: { card: 60 },
+          },
         })
       ).status,
       200,
@@ -359,6 +371,30 @@ test(
       }),
     );
     await until(() => ttsOwner.last?.audioSegment?.charIndex === 1);
+    outsider.socket.send(JSON.stringify({ type: "audio-claim", transfer: true }));
+    await until(
+      () =>
+        outsider.last?.audioOwner === "test-audio-outsider" &&
+        outsider.last.audioActive === true,
+    );
+    assert.equal((await state()).audioSegment, undefined);
+    const transferredDuration = (await state()).session.active!.phaseDuration;
+    ttsOwner.socket.send(JSON.stringify({ type: "audio-release" }));
+    ttsOwner.socket.send(JSON.stringify({ type: "audio-done", ...payload }));
+    ttsOwner.socket.send(JSON.stringify({ type: "audio-error", ...payload }));
+    await delay(30);
+    assert.equal((await state()).audioOwner, "test-audio-outsider");
+    assert.equal((await state()).audioActive, true);
+    assert.equal(
+      (await state()).session.active!.phaseDuration,
+      transferredDuration,
+    );
+    ttsOwner.socket.send(JSON.stringify({ type: "audio-claim", transfer: true }));
+    await until(
+      () =>
+        ttsOwner.last?.audioOwner === "test-tts-owner" &&
+        ttsOwner.last.audioActive === true,
+    );
     ttsOwner.socket.send(JSON.stringify({ type: "audio-error", ...payload }));
     await until(() => ttsOwner.last?.audioActive === false);
     assert.equal((await state()).audioSegment, undefined);
@@ -396,6 +432,21 @@ test(
     assert.equal(served.headers.get("content-type"), "audio/wav");
     assert.deepEqual(Buffer.from(await served.arrayBuffer()), wave);
     const { segmentIndex: _segmentIndex, ...fullPayload } = payload;
+    holdTTS = true;
+    const displacedRequest = speak(fullPayload);
+    await until(() => ttsHits === 2 && !!releaseTTS);
+    outsider.socket.send(JSON.stringify({ type: "audio-claim", transfer: true }));
+    await until(() => outsider.last?.audioOwner === "test-audio-outsider");
+    releaseTTS!();
+    assert.equal(
+      (await displacedRequest).status,
+      409,
+      "Tab cũ không được nhận TTS sau khi đã chuyển nguồn",
+    );
+    holdTTS = false;
+    releaseTTS = undefined;
+    ttsOwner.socket.send(JSON.stringify({ type: "audio-claim", transfer: true }));
+    await until(() => ttsOwner.last?.audioOwner === "test-tts-owner");
     const fullResponses = await Promise.all([
       speak(fullPayload),
       speak(fullPayload),

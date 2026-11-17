@@ -113,7 +113,9 @@ test("Tiến độ là nguyên câu từ lời đọc; pause/skip/replay loại 
       timing: "boundary",
     });
     const first = engine.snapshot("demo").audioSegment!;
-    assert.equal(first.text, "Nhìn lại điều đã qua.");
+    const firstSentence = reading.content.cards[0].speech.match(/^[\s\S]*?[.!?](?=\s|$)/u)?.[0];
+    assert.ok(firstSentence, "Lời đọc mẫu cần có câu hoàn chỉnh");
+    assert.equal(first.text, firstSentence);
     assert.equal(first.charIndex, 1);
     assert.equal(first.timing, "boundary");
     engine.audioProgress("demo", {

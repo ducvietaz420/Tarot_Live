@@ -1,0 +1,161 @@
+{
+  "checkedAt": "2026-11-14T13:05:24.419Z",
+  "ok": true,
+  "mode": "demo",
+  "passiveObserver": true,
+  "readingId": "49207efa-3d7b-4339-a374-65f98d0086db",
+  "cards": [
+    {
+      "cardId": "wands-4",
+      "position": 0,
+      "reversed": true
+    },
+    {
+      "cardId": "cups-14",
+      "position": 1,
+      "reversed": true
+    },
+    {
+      "cardId": "cups-12",
+      "position": 2,
+      "reversed": false
+    }
+  ],
+  "source": "ai",
+  "content": {
+    "cardsUnchanged": true,
+    "speechMatchesText": true,
+    "cards": [
+      {
+        "cardId": "wands-4",
+        "position": 0,
+        "reversed": true,
+        "words": 64
+      },
+      {
+        "cardId": "cups-14",
+        "position": 1,
+        "reversed": true,
+        "words": 61
+      },
+      {
+        "cardId": "cups-12",
+        "position": 2,
+        "reversed": false,
+        "words": 57
+      }
+    ],
+    "summaryWords": 50
+  },
+  "config": {
+    "aiEnabled": true,
+    "model": "gemini-3.5-flash-lite",
+    "provider": "browser",
+    "voice": "Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+    "speechRate": 1,
+    "speechVolume": 0.85,
+    "music": true,
+    "musicVolume": 0.2,
+    "sfx": true,
+    "sfxVolume": 0.7
+  },
+  "phases": [
+    {
+      "phase": "locking",
+      "at": "2026-11-14T13:06:01.211Z",
+      "elapsedMs": 2
+    },
+    {
+      "phase": "shuffling",
+      "at": "2026-11-14T13:06:03.268Z",
+      "elapsedMs": 2059
+    },
+    {
+      "phase": "dealing",
+      "at": "2026-11-14T13:06:06.325Z",
+      "elapsedMs": 5116
+    },
+    {
+      "phase": "card1",
+      "at": "2026-11-14T13:06:08.359Z",
+      "elapsedMs": 7150
+    },
+    {
+      "phase": "card2",
+      "at": "2026-11-14T13:06:25.663Z",
+      "elapsedMs": 24454
+    },
+    {
+      "phase": "card3",
+      "at": "2026-11-14T13:06:41.537Z",
+      "elapsedMs": 40328
+    },
+    {
+      "phase": "summary",
+      "at": "2026-11-14T13:06:57.232Z",
+      "elapsedMs": 56023
+    },
+    {
+      "phase": "complete",
+      "at": "2026-11-14T13:07:11.518Z",
+      "elapsedMs": 70309
+    }
+  ],
+  "speech": {
+    "card1": {
+      "audioActiveObserved": true,
+      "boundaryUpdates": 65,
+      "estimatedUpdates": 0,
+      "maximumCharIndex": 271,
+      "status": [
+        "Đang phát nhạc nền tarot",
+        "Đang chuẩn bị hoặc phát toàn bộ lời đọc.",
+        "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+        "Đã đọc xong đoạn; đang giữ nội dung trên sân khấu.",
+        "Đã đọc trọn nội dung"
+      ]
+    },
+    "card2": {
+      "audioActiveObserved": true,
+      "boundaryUpdates": 62,
+      "estimatedUpdates": 0,
+      "maximumCharIndex": 278,
+      "status": [
+        "Đang chuẩn bị hoặc phát toàn bộ lời đọc.",
+        "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+        "Đã đọc xong đoạn; đang giữ nội dung trên sân khấu.",
+        "Đã đọc trọn nội dung"
+      ]
+    },
+    "card3": {
+      "audioActiveObserved": true,
+      "boundaryUpdates": 58,
+      "estimatedUpdates": 0,
+      "maximumCharIndex": 253,
+      "status": [
+        "Đang chuẩn bị hoặc phát toàn bộ lời đọc.",
+        "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+        "Đã đọc xong đoạn; đang giữ nội dung trên sân khấu.",
+        "Đã đọc trọn nội dung"
+      ]
+    },
+    "summary": {
+      "audioActiveObserved": true,
+      "boundaryUpdates": 51,
+      "estimatedUpdates": 0,
+      "maximumCharIndex": 223,
+      "status": [
+        "Đang chuẩn bị hoặc phát toàn bộ lời đọc.",
+        "Đang đọc liền mạch · Microsoft Hoài My Online (Natural) - Vietnamese (Vietnam)",
+        "Đã đọc xong đoạn; đang giữ nội dung trên sân khấu.",
+        "Đã đọc trọn nội dung"
+      ]
+    }
+  },
+  "completionStatus": "completed",
+  "errors": [],
+  "limitations": "Browser speech progress is observed; physical speaker/OBS capture is not measured. Music and shuffle configuration/phase coverage are observed, not an audio recording.",
+  "elapsedMs": 113209,
+  "readingElapsedMs": 76419,
+  "elapsedIncludesWaitingForReading": true
+}

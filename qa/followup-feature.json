@@ -1,0 +1,66 @@
+{
+  "checkedAt": "2026-11-14T14:10:21.631Z",
+  "ok": true,
+  "provider": "Gemini",
+  "model": "gemini-3.5-flash-lite",
+  "isolatedPort": 54323,
+  "syntheticDataOnly": true,
+  "main": {
+    "elapsedMs": 3108,
+    "source": "ai",
+    "cards": [
+      {
+        "cardId": "wands-12",
+        "position": 0,
+        "reversed": true,
+        "text": "Ở quá khứ, tốc độ quá nhanh hoặc sự nóng vội đã khiến lời hứa của bạn thiếu nhất quán. Lá Kỵ Sĩ Gậy ngược nhắc bạn cần chậm lại để kiểm tra mục tiêu. Bạn hãy kết thúc một việc đang làm thay vì bắt đầu nhiều thứ cùng lúc.",
+        "speech": "Ở quá khứ, tốc độ quá nhanh hoặc sự nóng vội đã khiến lời hứa của bạn thiếu nhất quán. Lá Kỵ Sĩ Gậy ngược nhắc bạn cần chậm lại để kiểm tra mục tiêu. Bạn hãy kết thúc một việc đang làm thay vì bắt đầu nhiều thứ cùng lúc.",
+        "words": 51
+      },
+      {
+        "cardId": "the-moon",
+        "position": 1,
+        "reversed": false,
+        "text": "Hiện tại, sự mơ hồ trong các yêu cầu công việc đang khiến bạn cảm thấy lo lắng và chưa rõ hướng đi. Lá Mặt Trăng xuôi cho thấy bạn cần tìm thêm dữ kiện thực tế trước khi đưa ra kết luận. Hãy ghi nhận cảm xúc của mình nhưng đừng để sự lo lắng lấn át.",
+        "speech": "Hiện tại, sự mơ hồ trong các yêu cầu công việc đang khiến bạn cảm thấy lo lắng và chưa rõ hướng đi. Lá Mặt Trăng xuôi cho thấy bạn cần tìm thêm dữ kiện thực tế trước khi đưa ra kết luận. Hãy ghi nhận cảm xúc của mình nhưng đừng để sự lo lắng lấn át.",
+        "words": 58
+      },
+      {
+        "cardId": "the-magician",
+        "position": 2,
+        "reversed": true,
+        "text": "Tương lai, năng lượng của bạn có thể bị phân tán và các dự định sẽ dễ vượt quá khả năng thực hiện. Lá Nhà Ảo Thuật ngược khuyên bạn nên kiểm tra lại những gì mình thực sự làm được. Bạn tránh dùng sự khéo léo để che lấp đi các vấn đề chưa rõ ràng.",
+        "speech": "Tương lai, năng lượng của bạn có thể bị phân tán và các dự định sẽ dễ vượt quá khả năng thực hiện. Lá Nhà Ảo Thuật ngược khuyên bạn nên kiểm tra lại những gì mình thực sự làm được. Bạn tránh dùng sự khéo léo để che lấp đi các vấn đề chưa rõ ràng.",
+        "words": 57
+      }
+    ],
+    "summary": "Tuần tới, bạn cần giải quyết sự mơ hồ trong công việc bằng cách làm rõ thông tin trước khi hành động. Điều bạn nên ưu tiên là giữ nhịp độ ổn định và hoàn thành từng việc nhỏ một cách chắc chắn.",
+    "summaryWords": 43
+  },
+  "followUps": [
+    {
+      "question": "Tôi nên bắt đầu từ việc gì trong tuần này?",
+      "answer": "Tuần này bạn hãy bắt đầu bằng cách tìm thêm dữ kiện thực tế để làm rõ những yêu cầu đang mơ hồ trong công việc. Dựa vào lá Mặt Trăng xuôi, việc nắm chắc thông tin sẽ giúp bạn giảm bớt lo lắng trước khi hành động. Cụ thể, bạn hãy rà soát lại các nhiệm vụ hiện tại và hỏi lại cấp trên những điểm chưa rõ.",
+      "words": 69,
+      "elapsedMs": 1258
+    },
+    {
+      "question": "Tôi cần tránh điều gì để không lặp lại vấn đề cũ?",
+      "answer": "Bạn cần tránh sự nóng vội và việc ôm đồm nhiều việc cùng lúc như trong quá khứ. Dựa vào lá Kỵ Sĩ Gậy ngược, việc bắt đầu quá nhiều thứ sẽ khiến lời hứa thiếu nhất quán. Do đó, bạn hãy tập trung kết thúc dứt điểm từng việc nhỏ thay vì chuyển sang nhiệm vụ mới.",
+      "words": 58,
+      "elapsedMs": 1402
+    },
+    {
+      "question": "Nếu chưa có tiến triển thì tôi nên điều chỉnh thế nào?",
+      "answer": "Nếu chưa có tiến triển, bạn hãy kiểm tra lại xem bản thân có đang dùng sự khéo léo để che lấp các vấn đề chưa rõ ràng hay không. Dựa vào lá Nhà Ảo Thuật ngược, việc năng lượng bị phân tán và dự định vượt quá khả năng thực hiện sẽ khiến kết quả bị chậm lại.",
+      "words": 59,
+      "elapsedMs": 1406
+    }
+  ],
+  "wrongViewerRejected": true,
+  "duplicateWithoutMsgIdIgnored": true,
+  "fourthQuestionRejected": true,
+  "cardsAndOriginalContextUnchanged": true,
+  "completed": true,
+  "apiRequests": 4
+}

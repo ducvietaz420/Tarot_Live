@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   Engine,
   DEFAULT_CONFIG,
+  blankSession,
   parseQuestion,
   validateConfig,
 } from "../server/engine.ts";
@@ -10,6 +11,7 @@ import { Store } from "../server/store.ts";
 import { normalizeEnvelope } from "../server/tikfinity.ts";
 import { validateAI, words } from "../server/providers.ts";
 import { CARDS } from "../shared/cards.ts";
+import { aiReadingContent } from "./fixtures/ai-reading.ts";
 
 function setup() {
   let time = 1_000_000;
@@ -137,7 +139,7 @@ test("AI chậm hơn animation vẫn hoàn tất trước khi bắt đầu đọ
     respond(
       new Response(
         JSON.stringify({
-          choices: [{ message: { content: JSON.stringify(reading.content) } }],
+          choices: [{ message: { content: JSON.stringify(aiReadingContent(reading)) } }],
         }),
         { status: 200 },
       ),
@@ -206,7 +208,7 @@ test("Hết hạn chờ AI không kẹt sân khấu; kết quả muộn không t
     respond(
       new Response(
         JSON.stringify({
-          choices: [{ message: { content: JSON.stringify(oldContent) } }],
+          choices: [{ message: { content: JSON.stringify(aiReadingContent(reading)) } }],
         }),
         { status: 200 },
       ),
@@ -421,8 +423,8 @@ test("Ba lá khác nhau, nội dung giữ cardId/vị trí/chiều, refresh snap
     r.cards,
   );
   for (const c of r.content.cards) {
-    assert.ok(words(c.text) >= 40);
-    assert.ok(words(c.text) <= 70);
+    assert.ok(words(c.text) >= 45);
+    assert.ok(words(c.text) <= r.config.displayWords);
     assert.equal(c.text, c.speech);
   }
   assert.deepEqual(e.snapshot("demo").session.active?.cards, r.cards);
@@ -582,6 +584,50 @@ test("Chỉ một audio owner toàn app, tab preview không tự nhận quyền"
   assert.equal(e.setAudioOwner("live", "live-3"), true);
   e.close();
 });
+
+test("Chuyển nguồn cùng phiên cần thao tác rõ ràng và giữ thời gian chuẩn bị cho overlay", () => {
+  const { e, advance } = setup();
+  try {
+    e.action({ type: "demo", scenario: "full" }, "demo");
+    for (let index = 0; index < 3; index++) e.advance("demo");
+    const reading = e.sessions.demo.active!;
+    assert.equal(reading.phase, "card1");
+    const signature = [reading.id, reading.phase, reading.generation] as const;
+    assert.equal(e.setAudioOwner("demo", "admin-audio"), true);
+    e.audioStart("demo", ...signature);
+    for (let second = 0; second < 30; second++) {
+      e.audioHeartbeat("demo", ...signature);
+      advance(1000);
+    }
+    e.audioProgress("demo", {
+      readingId: reading.id,
+      phase: reading.phase,
+      generation: reading.generation,
+      charIndex: 1,
+      timing: "boundary",
+    });
+    assert.ok(e.snapshot("demo").audioSegment);
+    assert.equal(e.setAudioOwner("demo", "overlay-audio"), false);
+    assert.equal(e.setAudioOwner("live", "live-overlay", true), false);
+    assert.equal(e.setAudioOwner("live", "admin-audio", true), false);
+    assert.equal(e.setAudioOwner("demo", "overlay-audio", true), true);
+    assert.equal(e.snapshot("demo").audioOwner, "overlay-audio");
+    assert.equal(e.snapshot("live").audioOwner, null);
+    assert.equal(e.snapshot("demo").audioSegment, undefined);
+    assert.equal(e.snapshot("demo").audioActive, true);
+    assert.equal(reading.phase, "card1");
+    advance(9999);
+    assert.equal(reading.phase, "card1");
+    advance(1);
+    assert.equal(
+      reading.phase,
+      "card2",
+      "Nguồn mới không được giữ lượt vô hạn nếu không phát",
+    );
+  } finally {
+    e.close();
+  }
+});
 test("Config validate, không xuất secret, quy tắc đang đọc giữ snapshot cũ", () => {
   const { e } = setup();
   assert.throws(() => validateConfig({ heartGoal: 0 }, DEFAULT_CONFIG));
@@ -607,16 +653,122 @@ test("Config validate, không xuất secret, quy tắc đang đọc giữ snapsh
   assert.equal(JSON.stringify(e.config).includes("secret"), false);
   e.close();
 });
+
+test("Lời giải đầy đủ là mặc định, giữ cấu hình hợp lệ và chỉ áp dụng thay đổi cho lượt mới", () => {
+  assert.equal(DEFAULT_CONFIG.displayWords, 65);
+  assert.equal(DEFAULT_CONFIG.summaryWords, 50);
+  const shortest = validateConfig({ displayWords: 45, summaryWords: 35 }, DEFAULT_CONFIG);
+  assert.equal(shortest.displayWords, 45);
+  assert.equal(shortest.summaryWords, 35);
+  for (const patch of [
+    { displayWords: 44 }, { displayWords: 71 },
+    { summaryWords: 34 }, { summaryWords: 56 },
+  ]) assert.throws(() => validateConfig(patch, DEFAULT_CONFIG));
+
+  const store = new Store(":memory:");
+  store.save({
+    config: { ...DEFAULT_CONFIG, displayWords: 45, summaryWords: 35 },
+    sessions: { demo: blankSession(), live: blankSession() },
+  });
+  const engine = new Engine(store, { rng: () => 0 });
+  try {
+    assert.equal(engine.config.displayWords, 45);
+    assert.equal(engine.config.summaryWords, 35);
+    engine.action({ type: "demo", scenario: "full" }, "demo");
+    const old = engine.sessions.demo.active!;
+    engine.action({ type: "config", config: { displayWords: 65, summaryWords: 50 } }, "demo");
+    assert.equal(old.config.displayWords, 45);
+    assert.equal(old.config.summaryWords, 35);
+    engine.action({ type: "skip" }, "demo");
+    engine.action({ type: "start" }, "demo");
+    assert.notEqual(engine.sessions.demo.active!.id, old.id);
+    assert.equal(engine.sessions.demo.active!.config.displayWords, 65);
+    assert.equal(engine.sessions.demo.active!.config.summaryWords, 50);
+  } finally {
+    engine.close();
+  }
+});
+
+test("Cấu hình ngắn đã lưu được nâng về lời giải đầy đủ, còn lượt cũ giữ nguyên nội dung đã chốt", () => {
+  const seed = new Engine(undefined, { rng: () => 0 });
+  seed.action({ type: "demo", scenario: "full" }, "demo");
+  const sessions = structuredClone(seed.sessions);
+  seed.close();
+  const old = sessions.demo.active!;
+  old.config.displayWords = 30;
+  old.config.summaryWords = 25;
+  const shortText = "Bạn nên làm rõ điều mình mong muốn trong mối quan hệ. Hãy trò chuyện bình tĩnh và cùng chọn một việc nhỏ để cải thiện.";
+  old.content.cards = old.content.cards.map((card) => ({ ...card, text: shortText, speech: shortText }));
+  old.content.summary = "Ba lá bài gợi ý bạn cân bằng cảm xúc, nói rõ nhu cầu và cùng chọn một thay đổi vừa sức.";
+  const lockedContent = structuredClone(old.content);
+  const store = new Store(":memory:");
+  store.save({ config: { ...DEFAULT_CONFIG, displayWords: 30, summaryWords: 25 }, sessions });
+  const engine = new Engine(store, { rng: () => 0 });
+  try {
+    assert.equal(engine.config.displayWords, 65);
+    assert.equal(engine.config.summaryWords, 50);
+    const restored = engine.sessions.demo.active!;
+    assert.equal(restored.id, old.id);
+    assert.equal(restored.paused, true);
+    assert.equal(restored.config.displayWords, 30);
+    assert.equal(restored.config.summaryWords, 25);
+    assert.deepEqual(restored.content, lockedContent);
+    engine.action({ type: "skip" }, "demo");
+    engine.action({ type: "start" }, "demo");
+    const next = engine.sessions.demo.active!;
+    assert.notEqual(next.id, old.id);
+    assert.equal(next.config.displayWords, 65);
+    assert.equal(next.config.summaryWords, 50);
+    assert.ok(next.content.cards.every((card) => words(card.text) >= 45 && words(card.text) <= 65));
+    assert.ok(words(next.content.summary) >= 35 && words(next.content.summary) <= 50);
+  } finally {
+    engine.close();
+  }
+});
+
+test("Âm lượng hiệu ứng độc lập với giọng đọc và giữ lựa chọn nhạc khi phục hồi cấu hình cũ", () => {
+  const configured = validateConfig(
+    { speechVolume: 0, sfxVolume: 0.8, music: true, musicVolume: 0.16 },
+    DEFAULT_CONFIG,
+  );
+  assert.equal(configured.speechVolume, 0);
+  assert.equal(configured.sfxVolume, 0.8);
+  assert.equal(configured.music, true);
+  for (const sfxVolume of [-0.01, 1.01, NaN, "0.5"])
+    assert.throws(() => validateConfig({ sfxVolume }, DEFAULT_CONFIG));
+  assert.equal(validateConfig({ sfxVolume: 0 }, DEFAULT_CONFIG).sfxVolume, 0);
+  assert.equal(validateConfig({ sfxVolume: 1 }, DEFAULT_CONFIG).sfxVolume, 1);
+
+  const { sfxVolume: _omitted, ...legacyConfig } = DEFAULT_CONFIG;
+  const store = new Store(":memory:");
+  store.save({
+    config: {
+      ...legacyConfig,
+      music: false,
+      musicVolume: 0.08,
+    } as typeof DEFAULT_CONFIG,
+    sessions: { demo: blankSession(), live: blankSession() },
+  });
+  const restored = new Engine(store);
+  try {
+    assert.equal(restored.config.sfxVolume, 0.65);
+    assert.equal(restored.config.music, false);
+    assert.equal(restored.config.musicVolume, 0.08);
+  } finally {
+    restored.close();
+  }
+});
 test("AI validator không cho thay lá/chiều/vị trí dù comment yêu cầu, fallback vẫn cùng lá", () => {
   const { e } = setup();
   e.ingest(chat("1"), "demo");
   e.ingest(gift("1"), "demo");
   e.action({ type: "start" }, "demo");
   const r = e.sessions.demo.active!;
-  const fake = structuredClone(r.content);
+  const content = aiReadingContent(r);
+  const fake = structuredClone(content);
   fake.cards[0].cardId = "fake";
   assert.throws(() => validateAI(fake, r));
-  const valid = validateAI(r.content, r);
+  const valid = validateAI(content, r);
   assert.deepEqual(
     valid.cards.map(({ cardId, position, reversed }) => ({
       cardId,

@@ -1,0 +1,41 @@
+{
+  "checkedAt": "2026-11-14T13:39:42.369Z",
+  "ok": true,
+  "provider": "Gemini",
+  "model": "gemini-3.5-flash-lite",
+  "isolatedPort": 54323,
+  "envModelConfigured": true,
+  "disabled": {
+    "aiEnabled": false,
+    "source": "fallback",
+    "apiRequests": 0
+  },
+  "enabled": {
+    "aiEnabled": true,
+    "source": "ai",
+    "elapsedMs": 3133,
+    "apiRequests": 1,
+    "cardsUnchanged": true,
+    "cards": [
+      {
+        "cardId": "pentacles-5",
+        "position": 0,
+        "reversed": false,
+        "words": 46
+      },
+      {
+        "cardId": "wands-1",
+        "position": 1,
+        "reversed": false,
+        "words": 46
+      },
+      {
+        "cardId": "pentacles-14",
+        "position": 2,
+        "reversed": false,
+        "words": 65
+      }
+    ],
+    "summaryWords": 36
+  }
+}

@@ -18,8 +18,10 @@ import {
 } from "../shared/types.ts";
 import {
   aiAvailable,
+  aiFailureMessage,
   fallback,
   generateAI,
+  generateFollowUpAI,
   phaseText,
   ttsAvailable,
   words,
@@ -27,6 +29,7 @@ import {
 import { Store } from "./store.ts";
 import { normalizeEnvelope } from "./tikfinity.ts";
 import { sentenceRanges } from "../shared/text.ts";
+import { completedQuestionRepeat, expiredChatReplayKeys, missingIdChatReplay, normalizeChatText } from "./chat-guard.ts";
 
 const AUDIO_INITIAL_GRACE_MS = 10_000;
 const AUDIO_HEARTBEAT_GRACE_MS = 6_000;
@@ -84,15 +87,18 @@ export const DEFAULT_CONFIG: Config = {
   aiEnabled: false,
   aiModel: "",
   aiTimeoutSec: 18,
+  followUpEnabled: true,
+  followUpWindowSec: 120,
   displayWords: 65,
   summaryWords: 50,
   ttsProvider: "browser",
   voice: "",
   speechRate: 0.95,
   speechVolume: 0.85,
-  music: false,
-  musicVolume: 0.12,
+  music: true,
+  musicVolume: 0.16,
   sfx: true,
+  sfxVolume: 0.65,
 };
 export function blankSession(): Session {
   return {
@@ -146,6 +152,7 @@ export function validateConfig(input: unknown, previous: Config): Config {
     "autoRun",
     "reversed",
     "aiEnabled",
+    "followUpEnabled",
     "music",
     "sfx",
   ] as const;
@@ -169,11 +176,13 @@ export function validateConfig(input: unknown, previous: Config): Config {
     communityCooldownSec: [0, 3600],
     maxCommunityPending: [1, 5],
     aiTimeoutSec: [2, 60],
+    followUpWindowSec: [30, 120],
     displayWords: [45, 70],
     summaryWords: [35, 55],
     speechRate: [0.5, 1.5],
     speechVolume: [0, 1],
     musicVolume: [0, 0.5],
+    sfxVolume: [0, 1],
   };
   for (const [key, [min, max]] of Object.entries(nums))
     if (key in input) {
@@ -342,6 +351,12 @@ export class Engine {
       }
     >
   > = {};
+  private followUpPending: Partial<Record<Mode, {
+    readingId: string;
+    questionId: string;
+    generation: number;
+    signal: AbortSignal;
+  }>> = {};
   private now: () => number;
   private rng: (max: number) => number;
   private store: Store;
@@ -354,8 +369,14 @@ export class Engine {
     this.now = options.now || Date.now;
     this.rng = options.rng || randomInt;
     const saved = store.load();
-    this.config = saved
-      ? validateConfig(saved.config, DEFAULT_CONFIG)
+    const savedConfig = saved ? { ...saved.config } : null;
+    // Upgrade settings saved while the shorter reading mode was enabled.
+    if (savedConfig && savedConfig.displayWords >= 20 && savedConfig.displayWords < 45)
+      savedConfig.displayWords = DEFAULT_CONFIG.displayWords;
+    if (savedConfig && savedConfig.summaryWords >= 15 && savedConfig.summaryWords < 35)
+      savedConfig.summaryWords = DEFAULT_CONFIG.summaryWords;
+    this.config = savedConfig
+      ? validateConfig(savedConfig, DEFAULT_CONFIG)
       : structuredClone(DEFAULT_CONFIG);
     this.sessions = saved?.sessions || {
       demo: blankSession(),
@@ -369,6 +390,10 @@ export class Engine {
       if (a || this.sessions[mode].queue.some(unresolved))
         this.restartHold.add(mode);
       if (a) {
+        for (const question of a.followUp?.questions || []) {
+          if (question.status === "generating") question.status = "queued";
+        }
+        if (a.phase === "followup" && a.followUp) a.followUp.currentQuestionId = undefined;
         a.remainingMs = Math.max(
           500,
           a.paused
@@ -414,6 +439,7 @@ export class Engine {
   }
   snapshot(mode: Mode): Snapshot {
     const active = this.sessions[mode].active;
+    const aiJob = this.aiPending[mode];
     const seg = this.audioSegments[mode];
     const audioSegment =
       active &&
@@ -434,6 +460,12 @@ export class Engine {
       ),
       serverTime: this.now(),
       capabilities: { ai: aiAvailable(), tts: ttsAvailable() },
+      aiPending:
+        !!active &&
+        !active.paused &&
+        aiJob?.readingId === active.id &&
+        aiJob.generation === (active.generation || 0) &&
+        !aiJob.signal.aborted,
       audioStatus: this.audioStatuses[mode],
       audioSegment,
       audioActive:
@@ -451,19 +483,23 @@ export class Engine {
     this.connection = { ...connection };
     this.onChange();
   }
-  setAudioOwner(mode: Mode, id: string | null) {
-    if (
-      id &&
-      Object.values(this.audioOwners).some((owner) => owner && owner !== id)
-    )
+  setAudioOwner(mode: Mode, id: string | null, transfer = false) {
+    const otherMode = mode === "demo" ? "live" : "demo";
+    if (id && this.audioOwners[otherMode]) return false;
+    const previousOwner = this.audioOwners[mode];
+    if (id && previousOwner && previousOwner !== id && !transfer)
       return false;
-    if (id && this.audioOwners[mode] && this.audioOwners[mode] !== id)
-      return false;
-    if (this.audioOwners[mode] !== id) {
+    if (previousOwner !== id) {
       delete this.audioLeases[mode];
       delete this.audioSegments[mode];
     }
     this.audioOwners[mode] = id;
+    if (id && previousOwner && previousOwner !== id && transfer) {
+      const active = this.sessions[mode].active;
+      // Give the new source time to start before an overdue card can advance.
+      if (active)
+        this.audioStart(mode, active.id, active.phase, active.generation);
+    }
     this.onChange();
     return true;
   }
@@ -690,6 +726,17 @@ export class Engine {
       return;
     }
     if (key) s.seen[key] = now;
+    for (const expired of expiredChatReplayKeys(s.seen, now)) delete s.seen[expired];
+    // A bare trigger is idempotent and may legitimately be reused for the next
+    // question inside five seconds. Actual question comments still use the guard.
+    const bareFollowUp = event.type === "chat" && /^!(?:hoi|hỏi)$/iu.test((event.comment || "").normalize("NFC").trim());
+    const replay = bareFollowUp ? undefined : missingIdChatReplay(event, s.seen, now, s.roomId);
+    if (replay?.duplicate) {
+      this.log(mode, "chat", "duplicate", "Bình luận thiếu msgId trùng người và nội dung trong 5 giây; không áp dụng lại.");
+      this.changed(mode);
+      return;
+    }
+    if (replay) s.seen[replay.key] = now;
     if (event.issues.length)
       this.log(mode, event.type, "review", event.issues.join("; "));
     if (event.type === "chat") this.chat(event, mode);
@@ -731,6 +778,29 @@ export class Engine {
       );
       return;
     }
+    const comment = (event.comment || "").normalize("NFC").trim();
+    const followUpCommand = comment.match(/^!(?:hoi|hỏi)(?:\s+([\s\S]*))?$/iu);
+    const awaitingQuestion = s.active?.followUp?.awaitingQuestion && s.active.user.id === event.user.id && !comment.startsWith("!");
+    if (followUpCommand || awaitingQuestion) {
+      try {
+        const activeRoom = s.active && s.queue.find((item) => item.id === s.active!.itemId)?.roomId;
+        const eventRoom = event.roomId || s.roomId;
+        if (activeRoom && eventRoom && activeRoom !== eventRoom)
+          throw new Error("Câu hỏi tiếp không thuộc phòng của lượt đang xem.");
+        if (followUpCommand && !followUpCommand[1]?.trim()) {
+          const reading = this.requireFollowUp(mode, undefined, event.user.id);
+          if (reading.followUp!.questions.length >= 3)
+            throw new Error("Mỗi người được hỏi tối đa 3 câu sau trải bài.");
+          reading.followUp!.awaitingQuestion = true;
+          this.log(mode, "followup", "awaiting_question", "Đã nhận !hoi; chờ nội dung câu hỏi ở bình luận tiếp theo của đúng người vừa xem bài.");
+        } else {
+          this.askFollowUp(mode, followUpCommand?.[1] || comment, event.user.id);
+        }
+      } catch (error) {
+        this.log(mode, "followup", "ignored", (error as Error).message);
+      }
+      return;
+    }
     const parsed = parseQuestion(event.comment || "", this.config);
     if (!parsed) {
       this.log(
@@ -750,8 +820,18 @@ export class Engine {
         mode,
         "chat",
         "locked",
-        "Người này đang đọc; câu hỏi đã khóa. Quà mới vẫn được lưu riêng.",
+        s.active.followUp && !s.active.followUp.closedReason
+          ? "Người này đang ở phần hỏi đáp; gửi !hoi rồi bình luận câu hỏi. Không tạo lại trải bài từ lệnh cũ."
+          : "Người này đang đọc; câu hỏi đã khóa. Quà mới vẫn được lưu riêng.",
       );
+      return;
+    }
+    if (completedQuestionRepeat(s.queue, {
+      userId: event.user.id,
+      roomId: event.roomId || s.roomId,
+      ...parsed,
+    }, now)) {
+      this.log(mode, "chat", "repeated_question", "Cùng tài khoản vừa xem đúng câu hỏi này; chờ 2 phút sau khi hoàn tất hoặc gửi câu hỏi mới. Lệnh lặp không tạo lượt mới.");
       return;
     }
     let q = s.queue.find((q) => q.user.id === event.user!.id && unresolved(q));
@@ -786,6 +866,7 @@ export class Engine {
       q = {
         id: randomUUID(),
         user: event.user,
+        roomId: event.roomId || s.roomId,
         topic: parsed.topic,
         question: parsed.question,
         status: "waiting_condition",
@@ -811,6 +892,7 @@ export class Engine {
             q.coins -= c.coins || 0;
           }
       q.user = event.user;
+      q.roomId = event.roomId || s.roomId || q.roomId;
       q.topic = parsed.topic;
       q.question = parsed.question;
       q.updatedAt = now;
@@ -971,6 +1053,7 @@ export class Engine {
         q = {
           id: randomUUID(),
           user: event.user!,
+          roomId: event.roomId || s.roomId,
           topic: "Tình duyên",
           question: "",
           status: "waiting_question",
@@ -1182,6 +1265,7 @@ export class Engine {
       signal,
     };
     this.aiPending[mode] = job;
+    this.onChange(mode);
     try {
       const content = await generateAI(reading, signal);
       const current = this.sessions[mode].active;
@@ -1200,32 +1284,189 @@ export class Engine {
         );
         this.changed(mode);
       }
-    } catch {
+    } catch (error) {
       if (
         !signal.aborted &&
         this.sessions[mode].active?.id === reading.id &&
         this.sessions[mode].active?.generation === job.generation
       ) {
         reading.content.error =
-          "AI chưa cấu hình, timeout hoặc phản hồi không hợp lệ; dùng nội dung biên soạn đúng các lá đã chốt.";
+          aiFailureMessage(error) +
+          " Dùng nội dung biên soạn đúng các lá đã chốt cho lượt này.";
         this.log(mode, "ai", "fallback", reading.content.error);
         this.changed(mode);
       }
     } finally {
       // A canceled older request must not clear a newer reading's pending job.
-      if (this.aiPending[mode] === job) delete this.aiPending[mode];
+      if (this.aiPending[mode] === job) {
+        delete this.aiPending[mode];
+        this.onChange(mode);
+      }
     }
   }
+  private openFollowUp(mode: Mode) {
+    const a = this.sessions[mode].active;
+    if (!a || a.community || !a.config.followUpEnabled || !a.config.aiEnabled || !aiAvailable()) return false;
+    const now = this.now();
+    a.followUp = {
+      openedAt: now,
+      deadline: now + Math.min(120, a.config.followUpWindowSec || 120) * 1000,
+      questions: [],
+    };
+    this.resetController(mode);
+    a.generation = (a.generation || 0) + 1;
+    this.changePhase(mode, "followup");
+    this.log(mode, "followup", "opened", "Giữ đúng người vừa xem tối đa 2 phút, nhận tối đa 3 câu !hoi dựa trên ba lá đã chốt.");
+    this.changed(mode);
+    return true;
+  }
+  private changePhase(mode: Mode, phase: Phase) {
+    const a = this.sessions[mode].active;
+    if (!a) return;
+    delete this.audioLeases[mode];
+    delete this.audioSegments[mode];
+    a.phase = phase;
+    a.phaseStartedAt = this.now();
+    a.phaseDuration = this.duration(a, phase);
+    a.remainingMs = undefined;
+  }
+  private requireFollowUp(mode: Mode, readingId?: unknown, userId?: unknown, allowPaused = false) {
+    const a = this.sessions[mode].active;
+    if (!a || !a.followUp || a.followUp.closedReason || !["followup", "answer"].includes(a.phase))
+      throw new Error("Hiện chưa mở phần hỏi đáp cho lượt xem bài.");
+    if (readingId !== undefined && readingId !== a.id)
+      throw new Error("Lượt xem bài đã thay đổi. Hãy tải trạng thái mới trước khi hỏi tiếp.");
+    if (userId !== undefined && userId !== a.user.id)
+      throw new Error("Chỉ đúng tài khoản vừa xem bài được hỏi tiếp trong lượt này.");
+    if (this.now() >= a.followUp.deadline) {
+      this.endFollowUp(mode, "timeout");
+      throw new Error("Đã hết thời gian hỏi đáp 2 phút.");
+    }
+    if (a.paused && !allowPaused) throw new Error("Hãy tiếp tục lượt đang tạm dừng trước khi gửi câu hỏi.");
+    return a;
+  }
+  private askFollowUp(mode: Mode, value: unknown, userId?: unknown, readingId?: unknown) {
+    const a = this.requireFollowUp(mode, readingId, userId);
+    if (typeof value !== "string") throw new Error("Cần nhập câu hỏi tiếp.");
+    const question = value.normalize("NFC").trim().replace(/\s+/gu, " ");
+    if (question.length < 8 || question.length > 500 || !/[\p{L}]/u.test(question) || /(?:https?:\/\/|www\.)/iu.test(question))
+      throw new Error("Câu hỏi tiếp cần 8–500 ký tự, không chứa liên kết.");
+    const existing = a.followUp!.questions.find((item) => normalizeChatText(item.question) === normalizeChatText(question));
+    if (existing) {
+      if (existing.status === "failed") this.retryFollowUp(mode, existing.id, a.id);
+      else this.log(mode, "followup", "duplicate", "Câu hỏi tiếp đã được nhận; không dùng thêm lượt hỏi.");
+      a.followUp!.awaitingQuestion = false;
+      return;
+    }
+    if (a.followUp!.questions.length >= 3) throw new Error("Mỗi người được hỏi tối đa 3 câu sau trải bài.");
+    a.followUp!.questions.push({ id: randomUUID(), question, status: "queued", askedAt: this.now(), attempts: 0 });
+    a.followUp!.awaitingQuestion = false;
+    this.log(mode, "followup", "queued", `Đã nhận câu hỏi tiếp ${a.followUp!.questions.length}/3 của đúng tài khoản vừa xem.`);
+    this.processFollowUp(mode);
+  }
+  private retryFollowUp(mode: Mode, questionId: unknown, readingId?: unknown) {
+    const a = this.requireFollowUp(mode, readingId);
+    const question = a.followUp!.questions.find((item) => item.id === questionId);
+    if (!question || question.status !== "failed") throw new Error("Câu hỏi này không cần thử lại.");
+    if ((question.attempts || 0) >= 3) throw new Error("Câu hỏi này đã thử tối đa 3 lần. Có thể kết thúc hỏi đáp để tiếp tục hàng chờ.");
+    if (this.now() - (question.answeredAt || question.askedAt) < 5000)
+      throw new Error("Chờ 5 giây trước khi thử lại câu hỏi bị lỗi.");
+    question.status = "queued";
+    question.error = undefined;
+    this.processFollowUp(mode);
+  }
+  private processFollowUp(mode: Mode) {
+    const a = this.sessions[mode].active;
+    if (!a || a.paused || a.phase !== "followup" || !a.followUp || a.followUp.closedReason || this.followUpPending[mode]) return;
+    if (this.now() >= a.followUp.deadline) { this.endFollowUp(mode, "timeout"); return; }
+    const question = a.followUp.questions.find((item) => item.status === "queued");
+    if (!question) return;
+    question.status = "generating";
+    question.attempts = (question.attempts || 0) + 1;
+    a.followUp.currentQuestionId = question.id;
+    const job = {
+      readingId: a.id,
+      questionId: question.id,
+      generation: a.generation || 0,
+      signal: this.resetController(mode),
+    };
+    this.followUpPending[mode] = job;
+    const previous = a.followUp.questions
+      .filter((item) => item.status === "answered" && !!item.answer)
+      .map((item) => ({ question: item.question, answer: item.answer! }));
+    this.changed(mode);
+    void (async () => {
+      try {
+        const answer = await generateFollowUpAI(a, question.question, previous, job.signal);
+        const current = this.sessions[mode].active;
+        if (this.followUpPending[mode] !== job || job.signal.aborted || current?.id !== a.id || current.generation !== job.generation || current.paused || !current.followUp || this.now() >= current.followUp.deadline) return;
+        question.answer = answer;
+        question.status = "answered";
+        question.answeredAt = this.now();
+        question.error = undefined;
+        current.generation = (current.generation || 0) + 1;
+        this.changePhase(mode, "answer");
+        this.log(mode, "followup", "answered", "AI đã trả lời dựa trên đúng ba lá và lời giải của người này.");
+        this.changed(mode);
+      } catch (error) {
+        const current = this.sessions[mode].active;
+        if (this.followUpPending[mode] !== job || job.signal.aborted || current?.id !== a.id || current.generation !== job.generation || !current.followUp || this.now() >= current.followUp.deadline) return;
+        question.status = "failed";
+        question.error = aiFailureMessage(error);
+        question.answeredAt = this.now();
+        current.followUp.currentQuestionId = undefined;
+        this.log(mode, "followup", "failed", question.error);
+        this.changed(mode);
+      } finally {
+        if (this.followUpPending[mode] === job) {
+          delete this.followUpPending[mode];
+          this.processFollowUp(mode);
+        }
+      }
+    })();
+  }
+  private cancelFollowUpJob(mode: Mode, requeue = false) {
+    const a = this.sessions[mode].active;
+    const job = this.followUpPending[mode];
+    delete this.followUpPending[mode];
+    if (job && a?.id === job.readingId) {
+      const question = a.followUp?.questions.find((item) => item.id === job.questionId);
+      if (question?.status === "generating") {
+        question.status = requeue ? "queued" : "failed";
+        question.error = requeue ? undefined : "Phần hỏi đáp đã kết thúc trước khi có câu trả lời.";
+        if (requeue) question.attempts = Math.max(0, (question.attempts || 1) - 1);
+      }
+    }
+    this.controllers[mode]?.abort();
+  }
+  private endFollowUp(mode: Mode, reason: "answered" | "timeout" | "admin") {
+    const a = this.sessions[mode].active;
+    if (!a?.followUp || a.followUp.closedReason) return;
+    this.cancelFollowUpJob(mode);
+    for (const question of a.followUp.questions) {
+      if (question.status === "queued") {
+        question.status = "failed";
+        question.error = "Phần hỏi đáp đã kết thúc trước khi câu hỏi này được trả lời.";
+      }
+    }
+    a.followUp.closedReason = reason;
+    a.followUp.awaitingQuestion = false;
+    a.followUp.currentQuestionId = undefined;
+    a.paused = false;
+    a.generation = (a.generation || 0) + 1;
+    this.resetController(mode);
+    this.changePhase(mode, "complete");
+    this.log(mode, "followup", "closed", reason === "timeout" ? "Đã hết thời gian hỏi đáp, tiếp tục hàng chờ." : reason === "answered" ? "Đã trả lời đủ 3 câu hỏi tiếp." : "Admin kết thúc hỏi đáp sớm.");
+    this.changed(mode);
+  }
   private duration(a: Reading, phase: Phase) {
-    if (phase.startsWith("card") || phase === "summary") {
+    if (phase === "followup") return Math.max(0, (a.followUp?.deadline || this.now()) - this.now());
+    if (phase.startsWith("card") || phase === "summary" || phase === "answer") {
       const cfg =
         phase === "summary"
           ? a.config.durations.summary
           : a.config.durations.card;
-      const text =
-        phase === "summary"
-          ? a.content.summary
-          : a.content.cards[Number(phase.slice(-1)) - 1].speech;
+      const text = phaseText({ ...a, phase });
       return Math.max(
         cfg * 1000,
         (words(text) / (2.9 * a.config.speechRate) + 3) * 1000,
@@ -1243,6 +1484,28 @@ export class Engine {
       a = s.active;
     if (!a || a.paused) return;
     const pending = this.aiPending[mode];
+    if (a.followUp && !a.followUp.closedReason && this.now() >= a.followUp.deadline) {
+      this.endFollowUp(mode, "timeout");
+      return;
+    }
+    if (a.phase === "followup") {
+      this.processFollowUp(mode);
+      return;
+    }
+    if (a.phase === "answer") {
+      if (a.followUp!.questions.filter((item) => item.status === "answered").length >= 3) {
+        this.endFollowUp(mode, "answered");
+        return;
+      }
+      a.followUp!.currentQuestionId = undefined;
+      a.generation = (a.generation || 0) + 1;
+      this.resetController(mode);
+      this.changePhase(mode, "followup");
+      this.changed(mode);
+      this.processFollowUp(mode);
+      return;
+    }
+    if (a.phase === "summary" && this.openFollowUp(mode)) return;
     if (
       a.phase === "dealing" &&
       pending?.readingId === a.id &&
@@ -1276,6 +1539,7 @@ export class Engine {
         q.updatedAt = this.now();
       }
       this.controllers[mode]?.abort();
+      s.recentReadings = [structuredClone(a), ...(s.recentReadings || []).filter((item) => item.id !== a.id)].slice(0, 5);
       s.active = null;
       this.log(mode, "reading", "completed", `Đã hoàn tất ${a.id}.`);
       this.maybeCommunity(mode);
@@ -1294,6 +1558,10 @@ export class Engine {
   tick() {
     for (const mode of ["demo", "live"] as Mode[]) {
       const a = this.sessions[mode].active;
+      if (a?.followUp && !a.followUp.closedReason && this.now() >= a.followUp.deadline) {
+        this.endFollowUp(mode, "timeout");
+      }
+      if (a?.phase === "followup" && !a.paused) this.processFollowUp(mode);
       if (
         a &&
         !a.paused &&
@@ -1332,6 +1600,7 @@ export class Engine {
           );
           a.paused = true;
           a.generation = (a.generation || 0) + 1;
+          if (a.phase === "followup") this.cancelFollowUpJob(mode, true);
           this.controllers[mode]?.abort();
           delete this.audioLeases[mode];
         }
@@ -1347,12 +1616,21 @@ export class Engine {
           );
           a.remainingMs = undefined;
           a.generation = (a.generation || 0) + 1;
-          this.resetController(mode);
+          const signal = this.resetController(mode);
           delete this.audioLeases[mode];
+          if (
+            a.config.aiEnabled &&
+            a.content.source === "fallback" &&
+            !a.content.error &&
+            ["locking", "shuffling", "dealing"].includes(a.phase)
+          )
+            void this.enrich(a, mode, signal);
+          if (a.phase === "followup") this.processFollowUp(mode);
         }
         break;
       case "skip":
         if (a) {
+          this.cancelFollowUpJob(mode);
           const q = s.queue.find((q) => q.id === a.itemId);
           if (q) {
             q.status = "skipped";
@@ -1372,6 +1650,7 @@ export class Engine {
         break;
       case "replay":
         if (a) {
+          if (a.phase === "followup") throw new Error("Chưa có câu trả lời đang đọc để phát lại.");
           this.controllers[mode]?.abort();
           a.paused = false;
           a.phaseStartedAt = now;
@@ -1382,6 +1661,16 @@ export class Engine {
           delete this.audioLeases[mode];
           delete this.audioSegments[mode];
         }
+        break;
+      case "followup-ask":
+        this.askFollowUp(mode, action.question, action.userId, action.readingId);
+        break;
+      case "followup-retry":
+        this.retryFollowUp(mode, action.id, action.readingId);
+        break;
+      case "followup-end":
+        this.requireFollowUp(mode, action.readingId, undefined, true);
+        this.endFollowUp(mode, "admin");
         break;
       case "queue-edit": {
         const q = s.queue.find((q) => q.id === id);

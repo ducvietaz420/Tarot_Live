@@ -16,6 +16,8 @@ export type Phase =
   | "card2"
   | "card3"
   | "summary"
+  | "followup"
+  | "answer"
   | "complete";
 export type QueueStatus =
   | "waiting_question"
@@ -60,6 +62,7 @@ export interface QueueItem {
   approved?: boolean;
   order?: number;
   readingId?: string;
+  roomId?: string;
 }
 export interface ReadingSection {
   cardId: string;
@@ -74,6 +77,24 @@ export interface ReadingContent {
   summary: string;
   source: "fallback" | "ai";
   error?: string;
+}
+export interface FollowUpQuestion {
+  id: string;
+  question: string;
+  answer?: string;
+  status: "queued" | "generating" | "answered" | "failed";
+  error?: string;
+  askedAt: number;
+  answeredAt?: number;
+  attempts?: number;
+}
+export interface FollowUpSession {
+  openedAt: number;
+  deadline: number;
+  questions: FollowUpQuestion[];
+  awaitingQuestion?: boolean;
+  currentQuestionId?: string;
+  closedReason?: "answered" | "timeout" | "admin";
 }
 export interface Reading {
   id: string;
@@ -93,6 +114,7 @@ export interface Reading {
   community?: boolean;
   generation?: number;
   replayCount?: number;
+  followUp?: FollowUpSession;
 }
 export interface Credit {
   id: string;
@@ -134,6 +156,7 @@ export interface HeartState {
 export interface Session {
   queue: QueueItem[];
   active: Reading | null;
+  recentReadings?: Reading[];
   credits: Credit[];
   hearts: HeartState;
   logs: EventLog[];
@@ -181,6 +204,8 @@ export interface Config {
   aiEnabled: boolean;
   aiModel: string;
   aiTimeoutSec: number;
+  followUpEnabled: boolean;
+  followUpWindowSec: number;
   displayWords: number;
   summaryWords: number;
   ttsProvider: "browser" | "http" | "off";
@@ -190,6 +215,7 @@ export interface Config {
   music: boolean;
   musicVolume: number;
   sfx: boolean;
+  sfxVolume: number;
 }
 export interface AudioSegment {
   readingId: string;
@@ -212,6 +238,7 @@ export interface Snapshot {
   audioStatus?: string;
   audioSegment?: AudioSegment;
   audioActive?: boolean;
+  aiPending?: boolean;
 }
 export interface NormalizedEvent {
   type: string;

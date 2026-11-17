@@ -1,0 +1,43 @@
+{
+  "title": "Tiệm Tarot original soundscape",
+  "provenance": "Original deterministic DSP composition; no external samples or recordings.",
+  "generator": "scripts/generate-audio-assets.mjs",
+  "assets": {
+    "card-shuffle.wav": {
+      "seconds": 2.4,
+      "sampleRate": 32000,
+      "channels": 1,
+      "bits": 16,
+      "bytes": 153644,
+      "peakDbFS": -4.01,
+      "rmsDbFS": -15.9,
+      "seamStep": 0,
+      "maxAdjacentStep": 1.166607,
+      "sha256": "56ab53bf7457467e56ac324d61ddad66555fac5a57f7e814b4ef8469bff54b2e"
+    },
+    "card-deal.wav": {
+      "seconds": 0.38,
+      "sampleRate": 32000,
+      "channels": 1,
+      "bits": 16,
+      "bytes": 24364,
+      "peakDbFS": -6.02,
+      "rmsDbFS": -21.57,
+      "seamStep": 0,
+      "maxAdjacentStep": 0.687988,
+      "sha256": "dd1d2e62a12d47b5de657bbb8c4317e8b2786c828da8e404ee9c80014fc984cf"
+    },
+    "tarot-ambient.wav": {
+      "seconds": 64,
+      "sampleRate": 32000,
+      "channels": 2,
+      "bits": 16,
+      "bytes": 8192044,
+      "peakDbFS": -7.96,
+      "rmsDbFS": -20.63,
+      "seamStep": 0.000322,
+      "maxAdjacentStep": 0.033691,
+      "sha256": "a3dac2f19064328ef98281717ab085d2c05b430c2c13338518125091af04db1a"
+    }
+  }
+}

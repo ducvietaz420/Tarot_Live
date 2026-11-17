@@ -14,6 +14,7 @@ import { useSession } from "./session";
 import { sentenceRanges } from "../shared/text";
 import CreditLedger from "./CreditLedger";
 import { ReadingText } from "./ReadingText";
+import FollowUpPanel from "./FollowUpPanel";
 
 const number = (n: number) => new Intl.NumberFormat("vi-VN").format(n);
 const time = (n?: number) =>
@@ -35,6 +36,8 @@ const phases: Record<string, string> = {
   card2: "Năng lượng hiện tại",
   card3: "Hướng đi phía trước",
   summary: "Lời nhắn dành cho bạn",
+  followup: "Bạn muốn hỏi thêm điều gì?",
+  answer: "Giải đáp từ trải bài vừa mở",
   complete: "Cảm ơn bạn đã ghé tiệm",
 };
 const positions = ["Quá khứ", "Hiện tại", "Tương lai"];
@@ -225,6 +228,14 @@ function Stage({
     return () => observer.disconnect();
   }, []);
   const now = useClock();
+  const followUp = r?.followUp;
+  const followUpQuestion = followUp?.questions.find(
+    (question) => question.id === followUp.currentQuestionId,
+  );
+  const isFollowUp = phase === "followup" || phase === "answer";
+  const followUpSeconds = Math.max(0, Math.ceil(((followUp?.deadline || now) - now) / 1000));
+  const followUpClock = `${Math.floor(followUpSeconds / 60)}:${String(followUpSeconds % 60).padStart(2, "0")}`;
+  const awaitingFollowUp = !!followUp?.awaitingQuestion && !followUp.closedReason && followUpSeconds > 0;
   const elapsed = r
     ? Math.max(
         0,
@@ -238,6 +249,14 @@ function Stage({
       ? r?.content.cards[activeIndex]?.text
       : phase === "summary"
         ? r?.content.summary
+        : phase === "answer"
+          ? followUpQuestion?.answer || "Đang chuẩn bị câu trả lời."
+        : phase === "followup"
+          ? followUpQuestion?.status === "generating"
+            ? "AI đang đọc lại ba lá và nội dung vừa giải để trả lời câu hỏi của bạn."
+            : awaitingFollowUp
+              ? `${r?.user.name}, hãy viết câu hỏi ở bình luận tiếp theo. Tiệm đang chờ câu hỏi của bạn; còn ${followUpClock}.`
+              : `Bạn còn ${Math.max(0, 3 - (followUp?.questions.length || 0))} câu hỏi tiếp về trải bài này. Gửi riêng !hoi, rồi viết câu hỏi ở bình luận tiếp theo. Chỉ tài khoản vừa xem bài mới được hỏi tiếp.`
         : phase === "complete"
           ? "Hãy giữ lại điều chạm đến bạn, và để những điều còn lại nhẹ nhàng đi qua."
           : r
@@ -262,7 +281,7 @@ function Stage({
     segment.generation === r.generation
       ? segment
       : undefined;
-  const phaseKey = `${r?.id || "idle"}:${phase}`;
+  const phaseKey = `${r?.id || "idle"}:${phase}:${followUp?.currentQuestionId || ""}`;
   const timedChar = Math.max(
     0,
     Math.min(
@@ -473,7 +492,7 @@ function Stage({
               {r?.community
                 ? "THÔNG ĐIỆP CHUNG CHO CẢ PHÒNG"
                 : r
-                  ? "ĐANG XEM BÀI CHO"
+                  ? isFollowUp ? "HỎI ĐÁP SAU TRẢI BÀI" : "ĐANG XEM BÀI CHO"
                   : "MỘT CHÚT LẮNG NGHE, MỘT CHÚT THẤU HIỂU"}
             </div>
             <h2>
@@ -485,7 +504,7 @@ function Stage({
           <span className="seeker-star">✧</span>
         </section>
         <section
-          className={`interpretation ${activeIndex >= 0 ? "is-reading" : ""}`}
+          className={`interpretation ${activeIndex >= 0 || phase === "answer" ? "is-reading" : ""} ${isFollowUp ? "followup-interpretation" : ""}`}
         >
           <div className="interpretation-top">
             <span>
@@ -494,6 +513,8 @@ function Stage({
                 ? `LÁ ${activeIndex + 1}/3 · ${positions[activeIndex].toLocaleUpperCase("vi")}`
                 : phase === "summary"
                   ? "KẾT NỐI BA THÔNG ĐIỆP"
+                  : isFollowUp
+                    ? `HỎI ĐÁP · ${followUp?.questions.length || 0}/3 CÂU · ${followUpClock}`
                   : r
                     ? "HÀNH TRÌNH CỦA BẠN"
                     : "DÀNH MỘT KHOẢNG LẶNG CHO BẠN"}
@@ -502,13 +523,15 @@ function Stage({
             <span>
               {r?.paused
                 ? "ĐÃ TẠM DỪNG"
-                : r?.content.source === "ai"
+                : (phase === "answer" && followUpQuestion?.status === "answered") || r?.content.source === "ai"
                   ? "AI CÁ NHÂN HÓA"
                   : "CHIÊM NGHIỆM CÙNG TAROT"}
             </span>
           </div>
           <h2>
-            {card?.vi || phases[phase]}
+            {card?.vi || (phase === "answer"
+              ? `Trả lời câu ${Math.max(1, (followUp?.questions.findIndex((question) => question.id === followUp.currentQuestionId) ?? 0) + 1)}`
+              : phases[phase])}
             {card && (
               <small>
                 {card.en} ·{" "}
@@ -516,6 +539,9 @@ function Stage({
               </small>
             )}
           </h2>
+          {isFollowUp && followUpQuestion && (
+            <p className="followup-stage-question">{followUpQuestion.question}</p>
+          )}
           <ReadingText
             text={fullText}
             charIndex={charIndex}
@@ -527,7 +553,11 @@ function Stage({
           <div className="interpretation-bottom">
             <span>✦</span>
             <i />
-            <small>Lắng nghe trực giác của bạn</small>
+            <small>{isFollowUp
+              ? awaitingFollowUp
+                ? `Đang chờ câu hỏi của ${r?.user.name} · ${followUpClock}`
+                : "!hoi · Gửi câu hỏi ở bình luận tiếp theo"
+              : "Lắng nghe trực giác của bạn"}</small>
             <i />
             <span>✦</span>
           </div>
@@ -547,6 +577,7 @@ function Stage({
               const revealed =
                 !!r &&
                 (phase === "summary" ||
+                  isFollowUp ||
                   phase === "complete" ||
                   activeIndex >= i);
               return (
@@ -624,7 +655,11 @@ function Stage({
               r?.paused
                 ? "Lượt đọc đang tạm dừng"
                 : captionSentence ||
-                  "Hít thở thật chậm. Mọi câu trả lời đều bắt đầu từ bên trong bạn."
+                  (phase === "followup"
+                    ? awaitingFollowUp
+                      ? `Đang chờ ${r?.user.name} bình luận câu hỏi · ${followUpClock} còn lại`
+                      : `${r?.user.name}: gửi !hoi rồi bình luận câu hỏi · ${followUpClock} còn lại`
+                    : "Hít thở thật chậm. Mọi câu trả lời đều bắt đầu từ bên trong bạn.")
             }
             charIndex={Math.max(
               0,
@@ -732,7 +767,7 @@ function App() {
     socket,
     clientId,
   } = useSession(mode);
-  const audio = useAudio(state, socket, clientId);
+  const audio = useAudio(state, socket, clientId, online);
   const [section, setSection] = useState("studio");
   const [guides, setGuides] = useState(false);
   const [toast, setToast] = useState("");
@@ -759,6 +794,7 @@ function App() {
     (q) => !["completed", "skipped", "reading"].includes(q.status),
   );
   const ready = pending.filter((q) => q.status === "ready");
+  const lastFollowUp = s.recentReadings?.find((reading) => reading.followUp?.questions.length);
   const save = async (patch: Partial<Config>) => {
     if (await action({ type: "config", config: patch }))
       inform("Đã lưu cấu hình");
@@ -771,15 +807,19 @@ function App() {
           overlay
           guides={new URLSearchParams(location.search).has("guides")}
         />
-        {!audio.owner && !state.audioOwner && (
+        {!audio.owner && (
           <button
             className="overlay-audio"
             disabled={audio.busy || audio.requesting}
-            onClick={audio.enable}
+            onClick={state.audioOwner ? audio.transfer : audio.enable}
             title={audio.status}
           >
             <Icon name="sound" size={16} />{" "}
-            {audio.busy ? "Âm thanh ở phiên khác" : "Bật âm thanh"}
+            {audio.busy
+              ? "Âm thanh ở phiên khác"
+              : state.audioOwner
+                ? "Chuyển âm thanh sang overlay này"
+                : "Bật âm thanh"}
           </button>
         )}
         {!online && (
@@ -916,7 +956,9 @@ function App() {
                     s.active
                       ? s.active.paused
                         ? "Đã tạm dừng"
-                        : "Đang xem bài"
+                        : ["followup", "answer"].includes(s.active.phase)
+                          ? "Đang hỏi đáp"
+                          : "Đang xem bài"
                       : "Sẵn sàng đón khách"
                   }
                   icon="star"
@@ -1013,6 +1055,8 @@ function App() {
                               "card2",
                               "card3",
                               "summary",
+                              "followup",
+                              "answer",
                               "complete",
                             ].map((p, i) => (
                               <i
@@ -1026,6 +1070,8 @@ function App() {
                                     "card2",
                                     "card3",
                                     "summary",
+                                    "followup",
+                                    "answer",
                                     "complete",
                                   ].indexOf(s.active!.phase) >= i
                                     ? "filled"
@@ -1076,7 +1122,7 @@ function App() {
                       <button
                         title="Đọc lại đoạn hiện tại"
                         onClick={() => action({ type: "replay" })}
-                        disabled={!s.active}
+                        disabled={!s.active || s.active.phase === "followup"}
                       >
                         <Icon name="reset" size={18} />
                       </button>
@@ -1084,7 +1130,7 @@ function App() {
                     <div className="control-toggles">
                       <Toggle
                         label="Tự chuyển lượt tiếp theo"
-                        hint="Sau khi hoàn tất lời tổng kết"
+                        hint="Sau tổng kết và phần hỏi đáp nếu bật"
                         checked={c.autoRun}
                         onChange={(v) => save({ autoRun: v })}
                       />
@@ -1095,6 +1141,15 @@ function App() {
                       />
                     </div>
                   </section>
+                  {s.active && s.active.followUp && (
+                    <FollowUpPanel key={s.active.id} reading={s.active} action={action} />
+                  )}
+                  {!s.active && lastFollowUp && (
+                    <FollowUpPanel
+                      reading={lastFollowUp}
+                      action={action}
+                    />
+                  )}
                   <section className="panel queue-panel">
                     <div className="panel-header">
                       <h2>
@@ -1137,21 +1192,29 @@ function App() {
                       <Icon name="sound" size={23} />
                     </div>
                     <div>
-                      <b>Để lời đọc được lắng nghe</b>
+                      <b>Nguồn phát âm thanh</b>
                       <p>{audio.status}</p>
                       <div className="audio-actions">
                         <button
                           onClick={audio.owner ? audio.disable : audio.enable}
                         >
-                          {audio.owner ? "Tắt tiếng tab này" : "Bật âm thanh"}
+                          {audio.owner ? "Tắt tiếng admin" : "Bật tiếng tại admin"}
                         </button>
                         <button
                           onClick={audio.test}
-                          disabled={!!state.audioOwner && !audio.owner}
+                          disabled={
+                            audio.busy ||
+                            audio.requesting ||
+                            (!!state.audioOwner && !audio.owner)
+                          }
                         >
                           Kiểm tra âm thanh
                         </button>
                       </div>
+                      <p>
+                        Để phát trên OBS/LIVE Studio, mở overlay và bật âm thanh
+                        tại đó. Kiểm tra giọng ở admin chỉ phát tạm thời.
+                      </p>
                     </div>
                   </section>
                   <div className="quiet-note">
@@ -1885,11 +1948,13 @@ function AudioSettings({
   const [d, setD] = useState(state.config);
   useEffect(() => setD(state.config), [JSON.stringify(state.config)]);
   const set = (k: keyof Config, v: unknown) => setD((p) => ({ ...p, [k]: v }));
+  const audioTestDisabled =
+    audio.busy || audio.requesting || (!!state.audioOwner && !audio.owner);
   return (
     <div className="settings-grid">
       <FormPanel
         title="Giọng đọc tiếng Việt"
-        description="Chỉ tab được bật âm thanh sở hữu loa. Admin và preview mặc định im lặng."
+        description="Bật âm thanh trên overlay dùng làm nguồn phát OBS/LIVE Studio. Kiểm tra giọng tại admin chỉ phát tạm thời rồi trả quyền âm thanh."
         onSave={() =>
           save({
             ttsProvider: d.ttsProvider,
@@ -1899,6 +1964,7 @@ function AudioSettings({
             music: d.music,
             musicVolume: d.musicVolume,
             sfx: d.sfx,
+            sfxVolume: d.sfxVolume,
           })
         }
       >
@@ -1946,13 +2012,13 @@ function AudioSettings({
           />
         </div>
         <Toggle
-          label="Nhạc nền ambient nhẹ"
-          hint="Âm tổng hợp local, giảm âm khi có lời đọc"
+          label="Nhạc nền tarot nhẹ"
+          hint="Hòa âm êm và tiếng dây gảy thưa; tự hạ nhỏ khi có lời đọc"
           checked={d.music}
           onChange={(v) => set("music", v)}
         />
         <NumberField
-          label="Âm lượng nhạc (0–1)"
+          label="Âm lượng nhạc nền (0–0,5)"
           value={d.musicVolume}
           min={0}
           max={0.5}
@@ -1960,10 +2026,26 @@ function AudioSettings({
           onChange={(v) => set("musicVolume", v)}
         />
         <Toggle
-          label="Âm xào / lật bài nhẹ"
+          label="Âm thanh xào / chia / lật bài"
           checked={d.sfx}
           onChange={(v) => set("sfx", v)}
         />
+        <NumberField
+          label="Âm lượng xào / lật bài (0–1)"
+          value={d.sfxVolume}
+          min={0}
+          max={1}
+          step={0.05}
+          onChange={(v) => set("sfxVolume", v)}
+        />
+        <div className="button-row">
+          <button onClick={audio.testShuffle} disabled={audioTestDisabled}>
+            Nghe thử xào bài
+          </button>
+          <button onClick={audio.testMusic} disabled={audioTestDisabled}>
+            Nghe thử nhạc nền
+          </button>
+        </div>
         <div className="info-note">
           {audio.status}
           <br />
@@ -1973,11 +2055,11 @@ function AudioSettings({
         </div>
         <div className="button-row">
           <button onClick={audio.owner ? audio.disable : audio.enable}>
-            {audio.owner ? "Tắt âm thanh tab này" : "Bật âm thanh"}
+            {audio.owner ? "Tắt tiếng admin" : "Bật tiếng tại admin"}
           </button>
           <button
             onClick={audio.test}
-            disabled={!!state.audioOwner && !audio.owner}
+            disabled={audioTestDisabled}
           >
             Kiểm tra âm thanh
           </button>
@@ -2024,14 +2106,14 @@ function AudioSettings({
           />
           <div className="form-grid">
             <NumberField
-              label="Số từ mỗi lá"
+              label="Tối đa số từ mỗi lá"
               value={d.displayWords}
               min={45}
               max={70}
               onChange={(v) => set("displayWords", v)}
             />
             <NumberField
-              label="Số từ tổng kết"
+              label="Tối đa số từ tổng kết"
               value={d.summaryWords}
               min={35}
               max={55}
@@ -2044,10 +2126,12 @@ function AudioSettings({
             onChange={(v) => set("reversed", v)}
           />
           <div className="info-note">
-            Key chỉ lưu tại backend/.env, không nhập vào trình duyệt. Nội dung
-            đang đọc:{" "}
+            Key chỉ lưu tại backend/.env, không nhập vào trình duyệt. Nguồn lời
+            giải của lượt hiện tại:{" "}
             <b>
-              {!state.session.active
+              {state.aiPending
+                ? "Đang tạo lời giải AI…"
+                : !state.session.active
                 ? "Chưa có lượt đang đọc"
                 : state.session.active.content.source === "ai"
                   ? "AI cá nhân hóa"
@@ -2056,7 +2140,39 @@ function AudioSettings({
             {state.session.active?.content.error && (
               <p>{state.session.active.content.error}</p>
             )}
+            {state.session.active && !state.aiPending && (
+              <p>
+                Lượt bắt đầu lúc{" "}
+                {new Date(state.session.active.createdAt).toLocaleTimeString("vi-VN", {
+                  timeZone: "Asia/Saigon",
+                })}
+                . Lời giải đã chốt được giữ nguyên; cấu hình AI mới áp dụng cho
+                lượt tiếp theo.
+              </p>
+            )}
           </div>
+        </FormPanel>
+        <FormPanel
+          title="Hỏi đáp sau trải bài"
+          description="Giữ đúng người vừa xem bài để hỏi tiếp về ba lá vừa mở, tối đa ba câu. Có thể kết thúc sớm tại phòng điều hành."
+          onSave={() => save({
+            followUpEnabled: d.followUpEnabled,
+            followUpWindowSec: d.followUpWindowSec,
+          })}
+        >
+          <Toggle
+            label="Cho phép hỏi tiếp sau tổng kết"
+            hint="Gửi !hoi rồi bình luận câu hỏi"
+            checked={d.followUpEnabled}
+            onChange={(value) => set("followUpEnabled", value)}
+          />
+          <NumberField
+            label="Thời gian hỏi đáp tối đa (giây)"
+            value={d.followUpWindowSec}
+            min={30}
+            max={120}
+            onChange={(value) => set("followUpWindowSec", value)}
+          />
         </FormPanel>
         <FormPanel
           title="Nhịp chuyển sân khấu"

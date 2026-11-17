@@ -1,0 +1,41 @@
+{
+  "checkedAt": "2026-11-14T13:15:14.046Z",
+  "ok": true,
+  "provider": "Gemini",
+  "model": "gemini-3.5-flash-lite",
+  "isolatedPort": 54323,
+  "envModelConfigured": true,
+  "disabled": {
+    "aiEnabled": false,
+    "source": "fallback",
+    "apiRequests": 0
+  },
+  "enabled": {
+    "aiEnabled": true,
+    "source": "ai",
+    "elapsedMs": 2712,
+    "apiRequests": 1,
+    "cardsUnchanged": true,
+    "cards": [
+      {
+        "cardId": "swords-5",
+        "position": 0,
+        "reversed": false,
+        "words": 29
+      },
+      {
+        "cardId": "pentacles-2",
+        "position": 1,
+        "reversed": false,
+        "words": 28
+      },
+      {
+        "cardId": "swords-3",
+        "position": 2,
+        "reversed": false,
+        "words": 29
+      }
+    ],
+    "summaryWords": 23
+  }
+}
